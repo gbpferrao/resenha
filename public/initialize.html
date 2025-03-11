@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inicializar Resenha Chat</title>
+  <style>
+    body {
+      font-family: 'Inter', 'Segoe UI', sans-serif;
+      background-color: #000000;
+      color: #ffffff;
+      margin: 0;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      text-align: center;
+    }
+    h1 {
+      font-family: 'Poppins', 'Segoe UI', sans-serif;
+      font-weight: 700;
+      margin-bottom: 20px;
+    }
+    .container {
+      max-width: 600px;
+      background-color: #0a0a0a;
+      border-radius: 8px;
+      padding: 30px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8);
+      border: 1px solid #1a1a1a;
+    }
+    p {
+      color: #b0b2c0;
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+    .button {
+      background-color: #3a4461;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 12px 24px;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    .button:hover {
+      background-color: #4a5676;
+    }
+    .button:disabled {
+      background-color: #2a2a30;
+      cursor: not-allowed;
+      opacity: 0.7;
+    }
+    .code-box {
+      background-color: #151520;
+      border-radius: 4px;
+      padding: 15px;
+      font-family: monospace;
+      margin: 20px 0;
+      text-align: left;
+      overflow-x: auto;
+    }
+    .note {
+      font-size: 0.9rem;
+      opacity: 0.7;
+      margin-top: 30px;
+      max-width: 80%;
+    }
+    .status-indicator {
+      display: flex;
+      align-items: center;
+      margin: 15px 0;
+      padding: 10px;
+      border-radius: 4px;
+      background-color: #151520;
+      font-size: 0.9rem;
+    }
+    .status-indicator.connected {
+      border-left: 3px solid #4CAF50;
+    }
+    .status-indicator.disconnected {
+      border-left: 3px solid #f44336;
+    }
+    .status-indicator i {
+      margin-right: 8px;
+    }
+    .config-display {
+      text-align: left;
+      font-size: 0.85rem;
+      max-height: 150px;
+      overflow-y: auto;
+      margin-bottom: 15px;
+    }
+    .config-display code {
+      color: #b0b2c0;
+    }
+    .dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 8px;
+    }
+    .dot.green {
+      background-color: #4CAF50;
+    }
+    .dot.red {
+      background-color: #f44336;
+    }
+    .dot.yellow {
+      background-color: #FFC107;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Inicializar Resenha Chat</h1>
+    <p>Esta página irá configurar o banco de dados do Firebase para o Resenha Chat. Use esta página apenas uma vez após criar um novo projeto no Firebase.</p>
+    
+    <div class="code-box">
+      1. Crie um projeto no Firebase Console<br>
+      2. Configure o Realtime Database<br>
+      3. Atualize as configurações no arquivo firebase-config.js<br>
+      4. Clique no botão abaixo para inicializar o banco de dados
+    </div>
+    
+    <div id="connection-status" class="status-indicator">
+      <span class="dot yellow"></span>
+      <span>Verificando conexão com Firebase...</span>
+    </div>
+    
+    <div class="config-display">
+      <p>Configuração detectada:</p>
+      <code id="firebase-config-display"></code>
+    </div>
+    
+    <button id="init-button" class="button" disabled>Inicializar Banco de Dados</button>
+    <p id="status"></p>
+  </div>
+  
+  <p class="note">Após a inicialização, você poderá voltar para a página principal e começar a usar o chat.</p>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+  
+  <!-- App Scripts -->
+  <script src="js/firebase-config.js"></script>
+  <script src="js/initialize-firebase-data.js"></script>
+  
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const initButton = document.getElementById('init-button');
+      const statusEl = document.getElementById('status');
+      const connectionStatus = document.getElementById('connection-status');
+      const configDisplay = document.getElementById('firebase-config-display');
+      
+      // Display sanitized config (no API keys)
+      if (typeof firebaseConfig !== 'undefined') {
+        // Create a sanitized copy that doesn't show the API key
+        const safeConfig = {...firebaseConfig};
+        safeConfig.apiKey = safeConfig.apiKey.substring(0, 8) + '...' + safeConfig.apiKey.substring(safeConfig.apiKey.length - 4);
+        configDisplay.textContent = JSON.stringify(safeConfig, null, 2);
+      } else {
+        configDisplay.textContent = 'Erro: Configuração do Firebase não encontrada!';
+      }
+      
+      // Test Firebase connection
+      function checkConnection() {
+        if (typeof firebase === 'undefined') {
+          connectionStatus.innerHTML = '<span class="dot red"></span> Firebase SDK não carregado. Verifique sua conexão.';
+          connectionStatus.className = 'status-indicator disconnected';
+          return;
+        }
+        
+        try {
+          // Initialize Firebase if not already initialized
+          if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+          }
+          
+          const connRef = firebase.database().ref('.info/connected');
+          connRef.on('value', (snap) => {
+            if (snap.val() === true) {
+              connectionStatus.innerHTML = '<span class="dot green"></span> Conectado ao Firebase com sucesso!';
+              connectionStatus.className = 'status-indicator connected';
+              initButton.disabled = false;
+            } else {
+              connectionStatus.innerHTML = '<span class="dot red"></span> Desconectado do Firebase. Verifique a configuração e conexão.';
+              connectionStatus.className = 'status-indicator disconnected';
+              initButton.disabled = true;
+            }
+          });
+        } catch (error) {
+          connectionStatus.innerHTML = `<span class="dot red"></span> Erro ao conectar: ${error.message}`;
+          connectionStatus.className = 'status-indicator disconnected';
+          initButton.disabled = true;
+        }
+      }
+      
+      // Check connection status
+      checkConnection();
+      
+      initButton.addEventListener('click', function() {
+        statusEl.textContent = 'Inicializando...';
+        initButton.disabled = true;
+        
+        // The actual initialization happens in initialize-firebase-data.js
+        // when the DOM is loaded, but we'll add this button just as a trigger
+        // and for user confidence
+        
+        setTimeout(() => {
+          if (!document.getElementById('init-status')) {
+            statusEl.innerHTML = 'Não foi possível inicializar. Verifique se o Firebase está configurado corretamente em <code>firebase-config.js</code>.';
+          }
+        }, 3000);
+      });
+    });
+  </script>
+</body>
+</html> 
