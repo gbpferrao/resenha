@@ -739,39 +739,13 @@ footer {
 
 /* Password options */
 .password-options {
-  display: flex;
-  justify-content: space-between;
-  width: 100%;
-  margin-top: 8px;
-  font-size: 0.8rem;
+  display: none; /* Hide instead of removing in case styles are needed for other elements */
 }
 
 .master-password-toggle {
-  display: flex;
-  align-items: center;
-  color: var(--text-secondary);
-  cursor: pointer;
-}
-
-.master-password-toggle input {
-  margin-right: 6px;
-}
-
-.master-password-toggle span {
-  transition: color 0.2s;
-}
-
-.master-password-toggle:hover span {
-  color: var(--text-primary);
+  display: none;
 }
 
 .forgot-password {
-  color: var(--text-secondary);
-  text-decoration: none;
-  transition: color 0.2s;
-}
-
-.forgot-password:hover {
-  color: var(--text-primary);
-  text-decoration: underline;
+  display: none;
 } 

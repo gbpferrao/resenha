@@ -5,8 +5,6 @@ const appContainer = document.getElementById('app-container');
 const passwordInput = document.getElementById('password-input');
 const unlockBtn = document.getElementById('unlock-btn');
 const passwordError = document.getElementById('password-error');
-const useMasterPasswordCheckbox = document.getElementById('use-master-password');
-const forgotPasswordLink = document.getElementById('forgot-password');
 
 // UI Elements
 const usernameInput = document.getElementById('username-input');
@@ -14,6 +12,9 @@ const messageInput = document.getElementById('message-input');
 const sendMessageBtn = document.getElementById('send-message-btn');
 const messagesContainer = document.getElementById('messages-container');
 const retryFirebaseBtn = document.getElementById('retry-firebase-btn');
+
+// Secret prefix to identify master password - only you know this
+const MASTER_PREFIX = "msm:"; // The secret prefix that only you know
 
 // Check if authentication is needed
 function checkAuthStatus() {
@@ -63,21 +64,6 @@ passwordInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') {
     attemptUnlock();
   }
-});
-
-// Handle forgot password link
-forgotPasswordLink.addEventListener('click', (e) => {
-  e.preventDefault();
-  
-  // Switch to master password mode
-  useMasterPasswordCheckbox.checked = true;
-  
-  // Show hint for master password
-  passwordError.textContent = 'Use a senha mestra para acesso permanente.';
-  passwordError.style.color = '#88aaff'; // Blue hint color instead of error red
-  
-  // Focus on password input
-  passwordInput.focus();
 });
 
 // Get the current regular password
@@ -173,14 +159,17 @@ async function attemptUnlock() {
     const enteredPassword = passwordInput.value.trim();
     console.log("Password entered:", enteredPassword ? "***" : "(empty)");
     
-    // Check if user wants to use master password
-    const useMasterPwd = useMasterPasswordCheckbox.checked;
+    // Check if user is trying to use the master password (using the secret prefix)
+    const isMasterPasswordAttempt = enteredPassword.startsWith(MASTER_PREFIX);
     
-    if (useMasterPwd) {
-      // Attempting to use super master password for permanent access
+    if (isMasterPasswordAttempt) {
+      // Strip the prefix to get the actual password attempt
+      const attemptedMasterPassword = enteredPassword.substring(MASTER_PREFIX.length);
+      
+      // Verify against the super master password
       const superMasterPassword = await getSuperMasterPassword();
       
-      if (enteredPassword === superMasterPassword) {
+      if (attemptedMasterPassword === superMasterPassword) {
         console.log("Super master password correct, unlocking with permanent access...");
         // Grant permanent access
         localStorage.setItem('resenha_permanent_access', 'true');
@@ -195,9 +184,8 @@ async function attemptUnlock() {
         console.log("Super master authentication successful");
       } else {
         console.log("Super master password incorrect");
-        // Incorrect password
-        passwordError.textContent = 'Senha mestra incorreta. Tente novamente.';
-        passwordError.style.color = 'var(--error-color)'; // Reset to error color
+        // Incorrect password - don't reveal it was a master password attempt
+        passwordError.textContent = 'Senha incorreta. Tente novamente.';
         passwordInput.value = '';
         passwordInput.focus();
         
@@ -226,7 +214,6 @@ async function attemptUnlock() {
         console.log("Daily password incorrect");
         // Incorrect password
         passwordError.textContent = 'Senha incorreta. Tente novamente.';
-        passwordError.style.color = 'var(--error-color)'; // Reset to error color
         passwordInput.value = '';
         passwordInput.focus();
         
@@ -238,7 +225,6 @@ async function attemptUnlock() {
   } catch (error) {
     console.error("Error during authentication:", error);
     passwordError.textContent = 'Erro ao verificar senha. Tente novamente.';
-    passwordError.style.color = 'var(--error-color)'; // Reset to error color
   }
 }
 
