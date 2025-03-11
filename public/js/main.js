@@ -16,6 +16,13 @@ const retryFirebaseBtn = document.getElementById('retry-firebase-btn');
 // Secret prefix to identify master password - only you know this
 const MASTER_PREFIX = "msm:"; // The secret prefix that only you know
 
+// Add username status indicator
+let usernameStatusTimeout = null;
+const usernameErrorDiv = document.querySelector('.username-error');
+if (usernameErrorDiv) {
+  usernameErrorDiv.innerHTML = 'Verificando disponibilidade...';
+}
+
 // Check if authentication is needed
 function checkAuthStatus() {
   // Check for permanent access first
@@ -310,8 +317,46 @@ function getSentMessageIds() {
 usernameInput.addEventListener('change', () => {
   const newUsername = usernameInput.value.trim();
   if (newUsername) {
-    localStorage.setItem('resenha_username', newUsername);
+    // Don't immediately save to localStorage - we'll do this after validation
+    handleUsernameChange();
   }
+});
+
+// Add input event for real-time validation
+usernameInput.addEventListener('input', () => {
+  const username = usernameInput.value.trim();
+  
+  // Clear any existing timeout to prevent multiple rapid checks
+  if (usernameStatusTimeout) {
+    clearTimeout(usernameStatusTimeout);
+  }
+  
+  // Show "checking" status
+  usernameInput.classList.remove('error');
+  usernameInput.classList.remove('valid');
+  usernameInput.classList.add('checking');
+  
+  if (usernameErrorDiv) {
+    usernameErrorDiv.textContent = 'Verificando disponibilidade...';
+    usernameErrorDiv.style.display = 'block';
+    usernameErrorDiv.className = 'username-error checking';
+  }
+  
+  // Debounce the check to avoid too many database calls
+  usernameStatusTimeout = setTimeout(() => {
+    if (username) {
+      handleUsernameChange();
+    } else {
+      // Empty username
+      usernameInput.classList.remove('checking');
+      usernameInput.classList.remove('valid');
+      usernameInput.classList.remove('error');
+      
+      if (usernameErrorDiv) {
+        usernameErrorDiv.style.display = 'none';
+      }
+    }
+  }, 500); // Wait 500ms after typing stops
 });
 
 // API calls replaced with Firebase functions
@@ -342,64 +387,191 @@ async function fetchMessages() {
   }
 }
 
-// Handle username input
+// Handle username input with enhanced feedback
 async function handleUsernameChange() {
   const username = usernameInput.value.trim();
   
   if (!username) {
-    return; // Empty username, no need to check
-  }
-  
-  // Check if username is already active
-  const isActive = await window.isUsernameActive(username);
-  
-  if (isActive) {
-    // Username is already in use
-    showError(`O nome "${username}" já está sendo usado por outra pessoa. Escolha outro nome.`);
-    usernameInput.classList.add('error');
-    return false;
-  } else {
-    // Username is available
+    // Hide all status indicators for empty username
+    usernameInput.classList.remove('checking');
+    usernameInput.classList.remove('valid');
     usernameInput.classList.remove('error');
     
-    // Register this username as active
-    await window.registerActiveUsername(username);
+    if (usernameErrorDiv) {
+      usernameErrorDiv.style.display = 'none';
+    }
+    return true; // Empty username, no need to check
+  }
+  
+  try {
+    // Show checking status
+    usernameInput.classList.add('checking');
+    usernameInput.classList.remove('valid');
+    usernameInput.classList.remove('error');
     
-    // Store the username in localStorage
-    localStorage.setItem('resenha_username', username);
+    if (usernameErrorDiv) {
+      usernameErrorDiv.textContent = 'Verificando disponibilidade...';
+      usernameErrorDiv.style.display = 'block';
+      usernameErrorDiv.className = 'username-error checking';
+    }
     
-    return true;
+    // Check if username is already active
+    const isActive = await window.isUsernameActive(username);
+    
+    if (isActive) {
+      // Username is already in use
+      usernameInput.classList.remove('checking');
+      usernameInput.classList.add('error');
+      usernameInput.classList.remove('valid');
+      
+      if (usernameErrorDiv) {
+        usernameErrorDiv.textContent = `O nome "${username}" já está sendo usado por outra pessoa.`;
+        usernameErrorDiv.style.display = 'block';
+        usernameErrorDiv.className = 'username-error error';
+      }
+      
+      return false;
+    } else {
+      // Username is available - register it
+      usernameInput.classList.remove('checking');
+      usernameInput.classList.remove('error');
+      usernameInput.classList.add('valid');
+      
+      if (usernameErrorDiv) {
+        usernameErrorDiv.textContent = `Nome "${username}" disponível e registrado para você.`;
+        usernameErrorDiv.style.display = 'block';
+        usernameErrorDiv.className = 'username-error valid';
+        
+        // Hide the success message after 3 seconds
+        setTimeout(() => {
+          if (usernameErrorDiv.className.includes('valid')) {
+            usernameErrorDiv.style.display = 'none';
+          }
+        }, 3000);
+      }
+      
+      // Register this username as active
+      await window.registerActiveUsername(username);
+      
+      // Now it's safe to store in localStorage
+      localStorage.setItem('resenha_username', username);
+      
+      return true;
+    }
+  } catch (error) {
+    console.error('Error during username validation:', error);
+    
+    // Show error state
+    usernameInput.classList.remove('checking');
+    usernameInput.classList.add('error');
+    usernameInput.classList.remove('valid');
+    
+    if (usernameErrorDiv) {
+      usernameErrorDiv.textContent = 'Erro ao verificar disponibilidade do nome.';
+      usernameErrorDiv.style.display = 'block';
+      usernameErrorDiv.className = 'username-error error';
+    }
+    
+    return false;
   }
 }
 
-// Initialize username from localStorage
+// Initialize username from localStorage with improved validation
 async function initUsername() {
   const savedUsername = localStorage.getItem('resenha_username');
   if (savedUsername) {
     usernameInput.value = savedUsername;
     
-    // Check if the saved username is still available
-    const isActive = await window.isUsernameActive(savedUsername);
-    
-    if (!isActive) {
-      // Register the saved username as active
-      window.registerActiveUsername(savedUsername).catch(error => {
-        console.error('Error registering saved username:', error);
-      });
-    } else {
-      // Username is taken by someone else now
-      // Add a number to make it unique
-      const newUsername = `${savedUsername}_${Math.floor(Math.random() * 1000)}`;
-      usernameInput.value = newUsername;
-      localStorage.setItem('resenha_username', newUsername);
+    try {
+      // Check if the saved username is still available
+      const isActive = await window.isUsernameActive(savedUsername);
       
-      // Register the new username
-      window.registerActiveUsername(newUsername).catch(error => {
-        console.error('Error registering new username:', error);
-      });
+      if (!isActive) {
+        // Username is available - register it
+        await window.registerActiveUsername(savedUsername);
+        
+        // Show success state briefly
+        usernameInput.classList.add('valid');
+        
+        if (usernameErrorDiv) {
+          usernameErrorDiv.textContent = `Nome "${savedUsername}" registrado para você.`;
+          usernameErrorDiv.className = 'username-error valid';
+          usernameErrorDiv.style.display = 'block';
+          
+          // Hide the success message after 3 seconds
+          setTimeout(() => {
+            if (usernameErrorDiv.className.includes('valid')) {
+              usernameErrorDiv.style.display = 'none';
+            }
+          }, 3000);
+        }
+      } else {
+        // Username is taken by someone else - generate a new one
+        let newUsername = '';
+        let attempts = 0;
+        let isAvailable = false;
+        
+        // Try up to 10 different usernames
+        while (!isAvailable && attempts < 10) {
+          newUsername = `${savedUsername}_${Math.floor(Math.random() * 1000)}`;
+          isAvailable = !(await window.isUsernameActive(newUsername));
+          attempts++;
+        }
+        
+        // If we couldn't find an available variation, create a completely random one
+        if (!isAvailable) {
+          newUsername = `Usuario_${Math.floor(Math.random() * 10000)}`;
+        }
+        
+        // Set the new username
+        usernameInput.value = newUsername;
+        localStorage.setItem('resenha_username', newUsername);
+        
+        // Register the new username
+        await window.registerActiveUsername(newUsername);
+        
+        // Show notification to user
+        showError(`Seu nome "${savedUsername}" está sendo usado por outra pessoa. Atribuímos "${newUsername}" para você.`);
+        
+        // Show validation state
+        usernameInput.classList.add('valid');
+        
+        if (usernameErrorDiv) {
+          usernameErrorDiv.textContent = `Nome novo "${newUsername}" registrado para você.`;
+          usernameErrorDiv.className = 'username-error valid';
+          usernameErrorDiv.style.display = 'block';
+          
+          // Hide the success message after 5 seconds
+          setTimeout(() => {
+            if (usernameErrorDiv.className.includes('valid')) {
+              usernameErrorDiv.style.display = 'none';
+            }
+          }, 5000);
+        }
+      }
+    } catch (error) {
+      console.error('Error during username initialization:', error);
       
-      showError(`Seu nome "${savedUsername}" está sendo usado por outra pessoa. Atribuímos "${newUsername}" para você.`);
+      // Create a new random username on error
+      const defaultUsername = `Usuario_${Math.floor(Math.random() * 10000)}`;
+      usernameInput.value = defaultUsername;
+      localStorage.setItem('resenha_username', defaultUsername);
+      
+      // Attempt to register it
+      window.registerActiveUsername(defaultUsername).catch(e => {
+        console.error('Error registering fallback username:', e);
+      });
     }
+  } else {
+    // No saved username - generate a random one
+    const defaultUsername = `Usuario_${Math.floor(Math.random() * 10000)}`;
+    usernameInput.value = defaultUsername;
+    localStorage.setItem('resenha_username', defaultUsername);
+    
+    // Register the username
+    window.registerActiveUsername(defaultUsername).catch(error => {
+      console.error('Error registering initial username:', error);
+    });
   }
 }
 

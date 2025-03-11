@@ -685,15 +685,65 @@ footer {
   background-color: rgba(207, 64, 64, 0.1);
 }
 
+#username-input.valid {
+  border-color: #4CAF50;
+  background-color: rgba(76, 175, 80, 0.05);
+}
+
+#username-input.checking {
+  border-color: #FFC107;
+  background-color: rgba(255, 193, 7, 0.05);
+}
+
 .username-error {
   color: var(--error-color);
   font-size: 0.8rem;
   margin-top: 4px;
   display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 180px;
+  padding: 4px 6px;
+  border-radius: 3px;
+  background-color: rgba(0, 0, 0, 0.8);
+  z-index: 10;
+  text-align: left;
 }
 
-#username-input.error + .username-error {
+.username-error.error {
+  color: #f44336;
   display: block;
+  border-left: 2px solid #f44336;
+}
+
+.username-error.valid {
+  color: #4CAF50;
+  display: block;
+  border-left: 2px solid #4CAF50;
+}
+
+.username-error.checking {
+  color: #FFC107;
+  display: block;
+  border-left: 2px solid #FFC107;
+}
+
+#username-input.error + .username-error,
+#username-input.valid + .username-error,
+#username-input.checking + .username-error {
+  display: block;
+}
+
+/* Keyframe animation for checking state */
+@keyframes pulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+
+.username-error.checking {
+  animation: pulse 1.5s infinite ease-in-out;
 }
 
 /* Error notification */

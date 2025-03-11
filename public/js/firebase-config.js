@@ -164,7 +164,12 @@ window.setSuperMasterPasswordInFirebase = async function(newPassword) {
   }
 }
 
-// ----------------- Username Uniqueness System -----------------
+// ----------------- Enhanced Username Uniqueness System -----------------
+
+// Constants for username presence system
+const USERNAME_ACTIVITY_TIMEOUT = 3 * 60 * 1000; // 3 minutes (reduced from 5)
+const PRESENCE_UPDATE_INTERVAL = 30 * 1000; // 30 seconds (reduced from 1 minute)
+const INACTIVE_CLEANUP_INTERVAL = 60 * 1000; // 1 minute (reduced from 5 minutes)
 
 // Get reference to active users
 window.getActiveUsersRef = function() {
@@ -173,6 +178,20 @@ window.getActiveUsersRef = function() {
     return null;
   }
   return window.database.ref('activeUsers');
+}
+
+// Get device information for better tracking
+window.getDeviceInfo = function() {
+  const now = new Date();
+  return {
+    userAgent: navigator.userAgent,
+    language: navigator.language,
+    platform: navigator.platform,
+    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    screenSize: `${window.screen.width}x${window.screen.height}`,
+    timestamp: now.toISOString(),
+    localTime: now.toLocaleTimeString()
+  };
 }
 
 // Function to check if a username is already active
@@ -194,18 +213,29 @@ window.isUsernameActive = async function(username) {
       return false; // Username is not active
     }
     
-    // Check if the user is still considered active (last seen within 5 minutes)
+    // Check if the user is still considered active
     const userData = snapshot.val();
-    const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
+    const timeoutAgo = Date.now() - USERNAME_ACTIVITY_TIMEOUT;
     
-    if (userData.lastSeen < fiveMinutesAgo) {
-      // User was inactive for more than 5 minutes, so we can reuse this username
+    // If last seen time is older than our timeout, consider inactive
+    if (userData.lastSeen < timeoutAgo) {
+      // User was inactive, so we can reuse this username
       // Clean up the stale entry
+      console.log(`Removing stale username: ${username} (last seen ${new Date(userData.lastSeen).toLocaleTimeString()})`);
       await activeUsersRef.child(username).remove();
       return false;
     }
     
-    return true; // Username is active
+    // Check if this is the same device trying to use the same name
+    const deviceId = localStorage.getItem('resenha_device_id');
+    if (userData.deviceId === deviceId) {
+      // Same device, allow reuse of username
+      console.log(`Same device reconnecting with username: ${username}`);
+      return false;
+    }
+    
+    console.log(`Username ${username} is already active (last seen ${new Date(userData.lastSeen).toLocaleTimeString()})`);
+    return true; // Username is active and used by someone else
   } catch (error) {
     console.error('Error checking username activity:', error);
     return false; // Default to allowing the username on error
@@ -224,13 +254,45 @@ window.registerActiveUsername = async function(username) {
       return false;
     }
     
-    // Set username as active with current timestamp
+    // Generate device ID if none exists
+    if (!localStorage.getItem('resenha_device_id')) {
+      const deviceId = Math.random().toString(36).substring(2, 15) + 
+                       Math.random().toString(36).substring(2, 15);
+      localStorage.setItem('resenha_device_id', deviceId);
+    }
+    
+    const deviceId = localStorage.getItem('resenha_device_id');
+    
+    // Set username as active with current timestamp and device info
     await activeUsersRef.child(username).set({
-      lastSeen: Date.now()
+      username: username,
+      deviceId: deviceId,
+      lastSeen: Date.now(),
+      deviceInfo: window.getDeviceInfo(),
+      connected: true
     });
+    
+    console.log(`Registered username as active: ${username}`);
     
     // Set up periodic updates to maintain active status
     window.startPresenceUpdates(username);
+    
+    // Set up cleanup on page unload
+    window.addEventListener('beforeunload', () => {
+      // Try to mark as disconnected immediately
+      const disconnectRef = activeUsersRef.child(username);
+      disconnectRef.child('connected').set(false);
+      disconnectRef.child('lastSeen').set(Date.now());
+      
+      // Also run the regular cleanup
+      window.cleanupPresence(username);
+    });
+    
+    // Also set up onDisconnect handler for server-side cleanup
+    activeUsersRef.child(username).onDisconnect().update({
+      connected: false,
+      lastSeen: firebase.database.ServerValue.TIMESTAMP
+    });
     
     return true;
   } catch (error) {
@@ -248,22 +310,23 @@ window.startPresenceUpdates = function(username) {
   // Clear any existing interval to prevent duplicates
   window.cleanupPresence(username);
   
-  // Update last seen every minute
+  console.log(`Starting presence updates for ${username} every ${PRESENCE_UPDATE_INTERVAL/1000} seconds`);
+  
+  // Update last seen more frequently
   const intervalId = setInterval(() => {
-    window.getActiveUsersRef().child(username).update({
-      lastSeen: Date.now()
+    const activeUsersRef = window.getActiveUsersRef();
+    if (!activeUsersRef) return;
+    
+    activeUsersRef.child(username).update({
+      lastSeen: Date.now(),
+      connected: true
     }).catch(error => {
       console.error('Error updating active status:', error);
     });
-  }, 60000); // Every minute
+  }, PRESENCE_UPDATE_INTERVAL);
   
   // Store the interval ID for cleanup
   localStorage.setItem('resenha_presence_interval', intervalId);
-  
-  // Set up cleanup on page unload
-  window.addEventListener('beforeunload', () => {
-    window.cleanupPresence(username);
-  });
 }
 
 // Clean up presence when user leaves
@@ -275,10 +338,13 @@ window.cleanupPresence = function(username) {
     localStorage.removeItem('resenha_presence_interval');
   }
   
-  // Mark user as offline by removing them from active users
+  // Mark user as offline by updating their status
   if (username && window.getActiveUsersRef()) {
-    window.getActiveUsersRef().child(username).remove().catch(error => {
-      console.error('Error removing active status:', error);
+    window.getActiveUsersRef().child(username).update({
+      connected: false,
+      lastSeen: Date.now()
+    }).catch(error => {
+      console.error('Error updating offline status:', error);
     });
   }
 }
@@ -290,6 +356,8 @@ window.setupInactiveUserCleanup = function() {
     return;
   }
   
+  console.log(`Setting up inactive user cleanup every ${INACTIVE_CLEANUP_INTERVAL/1000} seconds`);
+  
   // Clear any existing interval
   const existingIntervalId = localStorage.getItem('resenha_inactive_cleanup_interval');
   if (existingIntervalId) {
@@ -298,16 +366,18 @@ window.setupInactiveUserCleanup = function() {
   
   const intervalId = setInterval(async () => {
     try {
-      const fiveMinutesAgo = Date.now() - (5 * 60 * 1000);
+      const timeoutAgo = Date.now() - USERNAME_ACTIVITY_TIMEOUT;
       const snapshot = await activeUsersRef.once('value');
       
       const deletePromises = [];
       
       snapshot.forEach(childSnapshot => {
         const userData = childSnapshot.val();
-        if (userData.lastSeen < fiveMinutesAgo) {
-          // Remove inactive users
-          deletePromises.push(activeUsersRef.child(childSnapshot.key).remove());
+        const username = childSnapshot.key;
+        
+        if (userData.lastSeen < timeoutAgo || userData.connected === false) {
+          console.log(`Cleaning up inactive user: ${username} (last seen: ${new Date(userData.lastSeen).toLocaleTimeString()}, connected: ${userData.connected})`);
+          deletePromises.push(activeUsersRef.child(username).remove());
         }
       });
       
@@ -319,7 +389,7 @@ window.setupInactiveUserCleanup = function() {
     } catch (error) {
       console.error('Error cleaning up inactive users:', error);
     }
-  }, 60000 * 5); // Every 5 minutes
+  }, INACTIVE_CLEANUP_INTERVAL);
   
   localStorage.setItem('resenha_inactive_cleanup_interval', intervalId);
 }
