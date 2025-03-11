@@ -488,6 +488,29 @@ async function initUsername() {
     usernameInput.value = savedUsername;
     
     try {
+      // Ensure username meets length requirements
+      if (savedUsername.length < 3 || savedUsername.length > 15) {
+        // Create a valid username
+        const newUsername = `User_${Math.floor(Math.random() * 9999)}`;
+        usernameInput.value = newUsername;
+        localStorage.setItem('resenha_username', newUsername);
+        
+        // Register the new username
+        await window.registerActiveUsername(newUsername);
+        
+        showUsernameMessage('valid', `Nome "${newUsername}" registrado.`);
+        usernameInput.classList.add('valid');
+        
+        // Hide message after 3 seconds
+        setTimeout(() => {
+          if (usernameInput.classList.contains('valid')) {
+            hideUsernameMessages();
+          }
+        }, 3000);
+        
+        return;
+      }
+      
       // Check if the saved username is still available
       const isActive = await window.isUsernameActive(savedUsername);
       
@@ -514,14 +537,16 @@ async function initUsername() {
         
         // Try up to 10 different usernames
         while (!isAvailable && attempts < 10) {
-          newUsername = `${savedUsername}_${Math.floor(Math.random() * 1000)}`;
+          // Ensure we generate a username that's not too long (max 15 chars)
+          const baseUsername = savedUsername.length > 10 ? savedUsername.substring(0, 10) : savedUsername;
+          newUsername = `${baseUsername}_${Math.floor(Math.random() * 999)}`;
           isAvailable = !(await window.isUsernameActive(newUsername));
           attempts++;
         }
         
         // If we couldn't find an available variation, create a completely random one
         if (!isAvailable) {
-          newUsername = `Usuario_${Math.floor(Math.random() * 10000)}`;
+          newUsername = `User_${Math.floor(Math.random() * 9999)}`;
         }
         
         // Set the new username
@@ -550,7 +575,7 @@ async function initUsername() {
       console.error('Error during username initialization:', error);
       
       // Create a new random username on error
-      const defaultUsername = `Usuario_${Math.floor(Math.random() * 10000)}`;
+      const defaultUsername = `User_${Math.floor(Math.random() * 9999)}`;
       usernameInput.value = defaultUsername;
       localStorage.setItem('resenha_username', defaultUsername);
       
@@ -561,7 +586,7 @@ async function initUsername() {
     }
   } else {
     // No saved username - generate a random one
-    const defaultUsername = `Usuario_${Math.floor(Math.random() * 10000)}`;
+    const defaultUsername = `User_${Math.floor(Math.random() * 9999)}`;
     usernameInput.value = defaultUsername;
     localStorage.setItem('resenha_username', defaultUsername);
     

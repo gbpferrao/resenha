@@ -35,7 +35,7 @@
     </div>
   </div>
 
-  <!-- Admin Panel -->
+  <!-- Admin Panel - Simplified -->
   <div id="admin-panel" class="admin-panel" style="display: none;">
     <header class="admin-header">
       <h1>Resenha<sup style="font-size: 0.4em; vertical-align: super;">™</sup> <span class="admin-subtitle">Painel Admin</span></h1>
@@ -52,7 +52,7 @@
     <main class="admin-main">
       <!-- Password Management - Simplified -->
       <div class="admin-section">
-        <h2>Senhas de Acesso</h2>
+        <h2>Senha de Acesso</h2>
         
         <!-- Current Password Display -->
         <div class="current-password-card">
@@ -67,98 +67,18 @@
           </div>
         </div>
         
-        <!-- Password Update Selector -->
+        <!-- Password Update - Simplified -->
         <div class="password-selector-card">
           <div class="card-header">
             <h3>Definir Nova Senha</h3>
           </div>
-          <div class="selector-container">
-            <select id="password-timing-selector">
-              <option value="now">Atualizar agora</option>
-              <option value="schedule">Programar para data futura</option>
-            </select>
-          </div>
           
-          <!-- Update Now (Default) -->
+          <!-- Update Now (Only Option) -->
           <div id="update-now-container" class="password-input-container">
             <input type="password" id="new-password" placeholder="Nova senha">
             <button id="update-password-btn" class="action-button">
               <i class="fas fa-check"></i> Atualizar
             </button>
-          </div>
-          
-          <!-- Schedule For Later (Hidden by default) -->
-          <div id="schedule-container" class="password-input-container" style="display: none;">
-            <div class="date-password-inputs">
-              <input type="date" id="scheduled-date">
-              <input type="password" id="scheduled-password" placeholder="Nova senha programada">
-            </div>
-            <button id="schedule-password-btn" class="action-button">
-              <i class="fas fa-calendar-check"></i> Programar
-            </button>
-          </div>
-        </div>
-        
-        <!-- Scheduled Passwords -->
-        <div id="scheduled-passwords-card" class="scheduled-passwords-card" style="display: none;">
-          <div class="card-header">
-            <h3>Senhas Programadas</h3>
-          </div>
-          <div id="scheduled-passwords-list" class="scheduled-passwords-list">
-            <!-- Scheduled passwords will appear here -->
-            <!-- Example entry:
-            <div class="scheduled-password-item">
-              <div class="scheduled-password-info">
-                <span class="scheduled-password-date">01/04/2023</span>
-                <span class="scheduled-password-value">•••••••</span>
-              </div>
-              <button class="delete-scheduled-btn"><i class="fas fa-times"></i></button>
-            </div>
-            -->
-          </div>
-        </div>
-      </div>
-
-      <!-- User Activity Dashboard -->
-      <div class="admin-section">
-        <h2>Atividade de Usuários</h2>
-        
-        <!-- Currently Active Users -->
-        <div class="activity-card">
-          <div class="card-header">
-            <h3>Usuários Ativos Agora</h3>
-            <button id="refresh-activity-btn" class="icon-button">
-              <i class="fas fa-sync-alt"></i>
-            </button>
-          </div>
-          <div id="active-users-container" class="users-container">
-            <!-- Active users will appear here -->
-            <div class="no-data-message">Nenhum usuário ativo no momento</div>
-          </div>
-        </div>
-        
-        <!-- Registered Devices -->
-        <div class="activity-card">
-          <div class="card-header">
-            <h3>Dispositivos Registrados</h3>
-          </div>
-          <div id="devices-container" class="users-container">
-            <!-- Device entries will appear here -->
-            <!-- Example:
-            <div class="device-entry">
-              <div class="device-info">
-                <span class="device-id">a1b2c3d4...</span>
-                <span class="current-username">Carlos</span>
-              </div>
-              <div class="username-history" title="Histórico de nomes">
-                <i class="fas fa-history"></i>
-                <div class="history-popup">
-                  <div class="history-entry">Pedro (Último: 05/03/2023)</div>
-                  <div class="history-entry">Carlos (Último: 10/03/2023)</div>
-                </div>
-              </div>
-            </div>
-            -->
           </div>
         </div>
       </div>
