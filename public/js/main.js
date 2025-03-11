@@ -20,7 +20,13 @@ const MASTER_PREFIX = "msm:"; // The secret prefix that only you know
 let usernameStatusTimeout = null;
 const usernameErrorDiv = document.querySelector('.username-error');
 if (usernameErrorDiv) {
-  usernameErrorDiv.innerHTML = 'Verificando disponibilidade...';
+  // Create the error div if it doesn't exist yet
+  if (!usernameErrorDiv.parentNode) {
+    const userPanel = document.querySelector('.user-panel');
+    if (userPanel) {
+      userPanel.appendChild(usernameErrorDiv);
+    }
+  }
 }
 
 // Check if authentication is needed
@@ -331,33 +337,55 @@ usernameInput.addEventListener('input', () => {
     clearTimeout(usernameStatusTimeout);
   }
   
+  // Clear previous error/validation states
+  hideUsernameMessages();
+  
+  // Skip validation for empty usernames
+  if (!username) {
+    return;
+  }
+  
   // Show "checking" status
   usernameInput.classList.remove('error');
   usernameInput.classList.remove('valid');
   usernameInput.classList.add('checking');
   
-  if (usernameErrorDiv) {
-    usernameErrorDiv.textContent = 'Verificando disponibilidade...';
-    usernameErrorDiv.style.display = 'block';
-    usernameErrorDiv.className = 'username-error checking';
-  }
+  showUsernameMessage('checking', 'Verificando disponibilidade...');
   
   // Debounce the check to avoid too many database calls
   usernameStatusTimeout = setTimeout(() => {
     if (username) {
       handleUsernameChange();
     } else {
-      // Empty username
-      usernameInput.classList.remove('checking');
-      usernameInput.classList.remove('valid');
-      usernameInput.classList.remove('error');
-      
-      if (usernameErrorDiv) {
-        usernameErrorDiv.style.display = 'none';
-      }
+      // Empty username, hide all messages
+      hideUsernameMessages();
     }
   }, 500); // Wait 500ms after typing stops
 });
+
+// Helper functions for showing/hiding username validation messages
+function showUsernameMessage(type, message) {
+  if (!usernameErrorDiv) return;
+  
+  // Clear any existing classes
+  usernameErrorDiv.className = 'username-error';
+  
+  // Add the specific type class
+  usernameErrorDiv.classList.add(type);
+  usernameErrorDiv.textContent = message;
+  usernameErrorDiv.style.display = 'block';
+}
+
+function hideUsernameMessages() {
+  if (!usernameErrorDiv) return;
+  
+  usernameInput.classList.remove('checking');
+  usernameInput.classList.remove('valid');
+  usernameInput.classList.remove('error');
+  
+  usernameErrorDiv.style.display = 'none';
+  usernameErrorDiv.className = 'username-error';
+}
 
 // API calls replaced with Firebase functions
 async function fetchMessages() {
@@ -392,14 +420,7 @@ async function handleUsernameChange() {
   const username = usernameInput.value.trim();
   
   if (!username) {
-    // Hide all status indicators for empty username
-    usernameInput.classList.remove('checking');
-    usernameInput.classList.remove('valid');
-    usernameInput.classList.remove('error');
-    
-    if (usernameErrorDiv) {
-      usernameErrorDiv.style.display = 'none';
-    }
+    hideUsernameMessages();
     return true; // Empty username, no need to check
   }
   
@@ -409,11 +430,7 @@ async function handleUsernameChange() {
     usernameInput.classList.remove('valid');
     usernameInput.classList.remove('error');
     
-    if (usernameErrorDiv) {
-      usernameErrorDiv.textContent = 'Verificando disponibilidade...';
-      usernameErrorDiv.style.display = 'block';
-      usernameErrorDiv.className = 'username-error checking';
-    }
+    showUsernameMessage('checking', 'Verificando disponibilidade...');
     
     // Check if username is already active
     const isActive = await window.isUsernameActive(username);
@@ -424,11 +441,7 @@ async function handleUsernameChange() {
       usernameInput.classList.add('error');
       usernameInput.classList.remove('valid');
       
-      if (usernameErrorDiv) {
-        usernameErrorDiv.textContent = `O nome "${username}" já está sendo usado por outra pessoa.`;
-        usernameErrorDiv.style.display = 'block';
-        usernameErrorDiv.className = 'username-error error';
-      }
+      showUsernameMessage('error', `O nome "${username}" já está sendo usado.`);
       
       return false;
     } else {
@@ -437,18 +450,14 @@ async function handleUsernameChange() {
       usernameInput.classList.remove('error');
       usernameInput.classList.add('valid');
       
-      if (usernameErrorDiv) {
-        usernameErrorDiv.textContent = `Nome "${username}" disponível e registrado para você.`;
-        usernameErrorDiv.style.display = 'block';
-        usernameErrorDiv.className = 'username-error valid';
-        
-        // Hide the success message after 3 seconds
-        setTimeout(() => {
-          if (usernameErrorDiv.className.includes('valid')) {
-            usernameErrorDiv.style.display = 'none';
-          }
-        }, 3000);
-      }
+      showUsernameMessage('valid', `Nome "${username}" registrado.`);
+      
+      // Hide the success message after 3 seconds
+      setTimeout(() => {
+        if (usernameInput.classList.contains('valid')) {
+          hideUsernameMessages();
+        }
+      }, 3000);
       
       // Register this username as active
       await window.registerActiveUsername(username);
@@ -466,11 +475,7 @@ async function handleUsernameChange() {
     usernameInput.classList.add('error');
     usernameInput.classList.remove('valid');
     
-    if (usernameErrorDiv) {
-      usernameErrorDiv.textContent = 'Erro ao verificar disponibilidade do nome.';
-      usernameErrorDiv.style.display = 'block';
-      usernameErrorDiv.className = 'username-error error';
-    }
+    showUsernameMessage('error', 'Erro ao verificar disponibilidade.');
     
     return false;
   }
@@ -493,18 +498,14 @@ async function initUsername() {
         // Show success state briefly
         usernameInput.classList.add('valid');
         
-        if (usernameErrorDiv) {
-          usernameErrorDiv.textContent = `Nome "${savedUsername}" registrado para você.`;
-          usernameErrorDiv.className = 'username-error valid';
-          usernameErrorDiv.style.display = 'block';
-          
-          // Hide the success message after 3 seconds
-          setTimeout(() => {
-            if (usernameErrorDiv.className.includes('valid')) {
-              usernameErrorDiv.style.display = 'none';
-            }
-          }, 3000);
-        }
+        showUsernameMessage('valid', `Nome "${savedUsername}" registrado.`);
+        
+        // Hide the success message after 3 seconds
+        setTimeout(() => {
+          if (usernameInput.classList.contains('valid')) {
+            hideUsernameMessages();
+          }
+        }, 3000);
       } else {
         // Username is taken by someone else - generate a new one
         let newUsername = '';
@@ -531,23 +532,19 @@ async function initUsername() {
         await window.registerActiveUsername(newUsername);
         
         // Show notification to user
-        showError(`Seu nome "${savedUsername}" está sendo usado por outra pessoa. Atribuímos "${newUsername}" para você.`);
+        showError(`Nome "${savedUsername}" já usado. Atribuímos "${newUsername}" para você.`);
         
         // Show validation state
         usernameInput.classList.add('valid');
         
-        if (usernameErrorDiv) {
-          usernameErrorDiv.textContent = `Nome novo "${newUsername}" registrado para você.`;
-          usernameErrorDiv.className = 'username-error valid';
-          usernameErrorDiv.style.display = 'block';
-          
-          // Hide the success message after 5 seconds
-          setTimeout(() => {
-            if (usernameErrorDiv.className.includes('valid')) {
-              usernameErrorDiv.style.display = 'none';
-            }
-          }, 5000);
-        }
+        showUsernameMessage('valid', `Nome novo "${newUsername}" registrado.`);
+        
+        // Hide the success message after 5 seconds
+        setTimeout(() => {
+          if (usernameInput.classList.contains('valid')) {
+            hideUsernameMessages();
+          }
+        }, 5000);
       }
     } catch (error) {
       console.error('Error during username initialization:', error);

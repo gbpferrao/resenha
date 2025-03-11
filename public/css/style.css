@@ -94,6 +94,8 @@ header h1 {
   width: 160px;
   font-size: 0.85rem;
   height: 34px;
+  position: relative;
+  z-index: 5;
 }
 
 #username-input:focus {
@@ -695,55 +697,97 @@ footer {
   background-color: rgba(255, 193, 7, 0.05);
 }
 
+/* Improved popup styling for username validation messages */
 .username-error {
   color: var(--error-color);
-  font-size: 0.8rem;
-  margin-top: 4px;
+  font-size: 0.75rem;
   display: none;
   position: absolute;
-  top: 100%;
-  left: 0;
-  width: 180px;
-  padding: 4px 6px;
-  border-radius: 3px;
-  background-color: rgba(0, 0, 0, 0.8);
-  z-index: 10;
+  top: 38px;
+  left: 10px;
+  width: 200px;
+  padding: 8px 10px;
+  border-radius: 4px;
+  background-color: rgba(15, 15, 20, 0.95);
+  z-index: 100;
   text-align: left;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(-5px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  line-height: 1.4;
+  font-weight: 400;
+  max-width: 90vw;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Add a little arrow to the popup */
+.username-error::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: 20px;
+  width: 8px;
+  height: 8px;
+  background-color: rgba(15, 15, 20, 0.95);
+  transform: rotate(45deg);
 }
 
 .username-error.error {
-  color: #f44336;
+  color: #ff6b6b;
   display: block;
-  border-left: 2px solid #f44336;
+  border-left: 2px solid #ff6b6b;
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .username-error.valid {
-  color: #4CAF50;
+  color: #69db7c;
   display: block;
-  border-left: 2px solid #4CAF50;
+  border-left: 2px solid #69db7c;
+  opacity: 1;
+  transform: translateY(0);
 }
 
 .username-error.checking {
-  color: #FFC107;
+  color: #fcc419;
   display: block;
-  border-left: 2px solid #FFC107;
+  border-left: 2px solid #fcc419;
+  opacity: 1;
+  transform: translateY(0);
 }
 
-#username-input.error + .username-error,
-#username-input.valid + .username-error,
-#username-input.checking + .username-error {
+/* Override the display property to ensure proper showing/hiding */
+#username-input.error ~ .username-error.error,
+#username-input.valid ~ .username-error.valid,
+#username-input.checking ~ .username-error.checking {
   display: block;
 }
 
 /* Keyframe animation for checking state */
 @keyframes pulse {
-  0% { opacity: 0.6; }
+  0% { opacity: 0.8; }
   50% { opacity: 1; }
-  100% { opacity: 0.6; }
+  100% { opacity: 0.8; }
 }
 
 .username-error.checking {
   animation: pulse 1.5s infinite ease-in-out;
+}
+
+/* Responsive adjustments for the popup */
+@media (max-width: 768px) {
+  .username-error {
+    width: 180px;
+    font-size: 0.7rem;
+    padding: 6px 8px;
+  }
+  
+  .username-error::before {
+    left: 15px;
+  }
 }
 
 /* Error notification */
