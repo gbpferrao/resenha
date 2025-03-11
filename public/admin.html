@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Resenha - Painel Admin</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/admin.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- Admin Login Overlay -->
+  <div id="admin-login-overlay" class="admin-login-overlay">
+    <div class="admin-login-container">
+      <h2>Admin Access</h2>
+      <p>Digite a senha administrativa</p>
+      <div class="admin-login-input-container">
+        <input type="password" id="admin-password-input" placeholder="Senha admin">
+        <button id="admin-login-btn">
+          <i class="fas fa-lock-open"></i> Acessar
+        </button>
+      </div>
+      <p id="admin-login-error" class="admin-login-error"></p>
+      <div class="login-nav">
+        <a href="index.html">
+          <i class="fas fa-arrow-left"></i> Voltar ao Chat
+        </a>
+      </div>
+    </div>
+    <div class="powered-by">
+      Powered by <a href="https://biten.com" target="_blank">Biten</a>
+    </div>
+  </div>
+
+  <!-- Admin Panel -->
+  <div id="admin-panel" class="admin-panel" style="display: none;">
+    <header class="admin-header">
+      <h1>Resenha<sup style="font-size: 0.4em; vertical-align: super;">™</sup> <span class="admin-subtitle">Painel Admin</span></h1>
+      <div class="admin-actions">
+        <a href="index.html" class="return-to-chat-btn">
+          <i class="fas fa-comments"></i> Chat
+        </a>
+        <button id="logout-admin-btn">
+          <i class="fas fa-sign-out-alt"></i> Sair
+        </button>
+      </div>
+    </header>
+
+    <main class="admin-main">
+      <!-- Password Management - Simplified -->
+      <div class="admin-section">
+        <h2>Senhas de Acesso</h2>
+        
+        <!-- Current Password Display -->
+        <div class="current-password-card">
+          <div class="card-header">
+            <h3>Senha Atual</h3>
+          </div>
+          <div class="password-display">
+            <span id="current-password">resenha123</span>
+            <button id="toggle-password-visibility" title="Mostrar/Esconder senha">
+              <i class="fas fa-eye"></i>
+            </button>
+          </div>
+        </div>
+        
+        <!-- Password Update Selector -->
+        <div class="password-selector-card">
+          <div class="card-header">
+            <h3>Definir Nova Senha</h3>
+          </div>
+          <div class="selector-container">
+            <select id="password-timing-selector">
+              <option value="now">Atualizar agora</option>
+              <option value="schedule">Programar para data futura</option>
+            </select>
+          </div>
+          
+          <!-- Update Now (Default) -->
+          <div id="update-now-container" class="password-input-container">
+            <input type="password" id="new-password" placeholder="Nova senha">
+            <button id="update-password-btn" class="action-button">
+              <i class="fas fa-check"></i> Atualizar
+            </button>
+          </div>
+          
+          <!-- Schedule For Later (Hidden by default) -->
+          <div id="schedule-container" class="password-input-container" style="display: none;">
+            <div class="date-password-inputs">
+              <input type="date" id="scheduled-date">
+              <input type="password" id="scheduled-password" placeholder="Nova senha programada">
+            </div>
+            <button id="schedule-password-btn" class="action-button">
+              <i class="fas fa-calendar-check"></i> Programar
+            </button>
+          </div>
+        </div>
+        
+        <!-- Scheduled Passwords -->
+        <div id="scheduled-passwords-card" class="scheduled-passwords-card" style="display: none;">
+          <div class="card-header">
+            <h3>Senhas Programadas</h3>
+          </div>
+          <div id="scheduled-passwords-list" class="scheduled-passwords-list">
+            <!-- Scheduled passwords will appear here -->
+            <!-- Example entry:
+            <div class="scheduled-password-item">
+              <div class="scheduled-password-info">
+                <span class="scheduled-password-date">01/04/2023</span>
+                <span class="scheduled-password-value">•••••••</span>
+              </div>
+              <button class="delete-scheduled-btn"><i class="fas fa-times"></i></button>
+            </div>
+            -->
+          </div>
+        </div>
+      </div>
+
+      <!-- User Activity Dashboard -->
+      <div class="admin-section">
+        <h2>Atividade de Usuários</h2>
+        
+        <!-- Currently Active Users -->
+        <div class="activity-card">
+          <div class="card-header">
+            <h3>Usuários Ativos Agora</h3>
+            <button id="refresh-activity-btn" class="icon-button">
+              <i class="fas fa-sync-alt"></i>
+            </button>
+          </div>
+          <div id="active-users-container" class="users-container">
+            <!-- Active users will appear here -->
+            <div class="no-data-message">Nenhum usuário ativo no momento</div>
+          </div>
+        </div>
+        
+        <!-- Registered Devices -->
+        <div class="activity-card">
+          <div class="card-header">
+            <h3>Dispositivos Registrados</h3>
+          </div>
+          <div id="devices-container" class="users-container">
+            <!-- Device entries will appear here -->
+            <!-- Example:
+            <div class="device-entry">
+              <div class="device-info">
+                <span class="device-id">a1b2c3d4...</span>
+                <span class="current-username">Carlos</span>
+              </div>
+              <div class="username-history" title="Histórico de nomes">
+                <i class="fas fa-history"></i>
+                <div class="history-popup">
+                  <div class="history-entry">Pedro (Último: 05/03/2023)</div>
+                  <div class="history-entry">Carlos (Último: 10/03/2023)</div>
+                </div>
+              </div>
+            </div>
+            -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Danger Zone -->
+      <div class="admin-section danger-zone">
+        <h2>Zona de Perigo</h2>
+        <div class="danger-actions">
+          <div class="danger-action">
+            <h3>Apagar Todas as Mensagens</h3>
+            <p>Esta ação não pode ser desfeita. Todas as mensagens serão permanentemente removidas.</p>
+            <button id="emergency-delete-btn" class="danger-button">
+              <i class="fas fa-exclamation-triangle"></i> Apagar Todas as Mensagens
+            </button>
+            <div id="delete-confirmation" class="delete-confirmation" style="display: none;">
+              <p>Tem certeza? Digite "CONFIRMAR" para prosseguir:</p>
+              <input type="text" id="delete-confirmation-input" placeholder="CONFIRMAR">
+              <div class="confirmation-actions">
+                <button id="confirm-delete-btn" class="danger-button">Confirmar Exclusão</button>
+                <button id="cancel-delete-btn">Cancelar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+  
+  <!-- Your scripts -->
+  <script src="js/firebase-config.js"></script>
+  <script src="js/admin.js"></script>
+</body>
+</html> 

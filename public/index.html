@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Resenha - Chat em grupo</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Poppins:wght@700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <!-- Password protection overlay -->
+  <div id="password-overlay" class="password-overlay">
+    <div class="password-container">
+      <h2>Acesso Restrito</h2>
+      <p>Digite a senha para acessar o chat</p>
+      <div class="password-input-container">
+        <input type="password" id="password-input" placeholder="Senha">
+        <button id="unlock-btn">
+          <i class="fas fa-unlock-alt"></i> Desbloquear
+        </button>
+        <div class="password-options">
+          <label class="master-password-toggle">
+            <input type="checkbox" id="use-master-password">
+            <span>Usar senha mestra</span>
+          </label>
+          <a id="forgot-password" href="#" class="forgot-password">Esqueceu a senha?</a>
+        </div>
+      </div>
+      <p id="password-error" class="password-error"></p>
+      <div class="login-nav">
+        <a href="admin.html">
+          <i class="fas fa-user-shield"></i> Acessar como Admin
+        </a>
+      </div>
+    </div>
+    <div class="powered-by">
+      Powered by <a href="https://biten.com" target="_blank">Biten</a>
+    </div>
+  </div>
+
+  <div class="app-container" id="app-container" style="display: none;">
+    <header>
+      <h1>Resenha<sup style="font-size: 0.4em; vertical-align: super;">™</sup></h1>
+      <div class="user-panel">
+        <input type="text" id="username-input" placeholder="Seu nome de usuário">
+        <div class="username-error">Nome de usuário já está em uso</div>
+        <a href="admin.html" class="admin-button">
+          <i class="fas fa-sliders-h"></i> Admin
+        </a>
+      </div>
+    </header>
+
+    <main class="chat-container">
+      <div id="messages-container">
+        <!-- Messages will be loaded here -->
+        <div class="loading-messages">
+          <i class="fas fa-comment-dots"></i>
+          <p>Nenhuma mensagem disponível</p>
+        </div>
+      </div>
+    </main>
+
+    <footer>
+      <div class="message-input-container">
+        <textarea id="message-input" placeholder="Digite sua mensagem aqui... (expira em 24h)"></textarea>
+        <button id="send-message-btn">
+          <i class="fas fa-paper-plane"></i>
+        </button>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Error notification -->
+  <div id="firebase-error" style="display: none; position: fixed; bottom: 20px; left: 20px; right: 20px; background-color: rgba(180, 30, 30, 0.9); color: white; padding: 15px; border-radius: 5px; z-index: 1000; border-left: 3px solid #cf4040; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);">
+    <p id="firebase-error-message">Erro ao conectar com o Firebase. Verifique sua conexão.</p>
+    <button id="retry-firebase-btn" style="background: #000000; color: white; border: 1px solid #333; padding: 5px 10px; margin-right: 10px; border-radius: 3px; cursor: pointer;">Tentar Novamente</button>
+    <button onclick="this.parentElement.style.display='none'" style="background: transparent; border: none; color: white; float: right; cursor: pointer;">×</button>
+  </div>
+   
+  <!-- Firebase SDK -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-database-compat.js"></script>
+  
+  <script>
+    // Check if Firebase scripts loaded properly
+    window.addEventListener('DOMContentLoaded', (event) => {
+      setTimeout(() => {
+        if (typeof firebase === 'undefined') {
+          document.getElementById('firebase-error').style.display = 'block';
+          document.getElementById('firebase-error-message').textContent = 
+            'Erro ao carregar Firebase SDK. Verifique sua conexão e tente novamente.';
+        }
+      }, 3000); // Wait 3 seconds to check
+    });
+  </script>
+   
+  <!-- Your scripts -->
+  <script src="js/firebase-config.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html> 

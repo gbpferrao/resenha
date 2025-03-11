@@ -1,0 +1,19 @@
+{
+  "dependencies": {
+    "firebase": "^9.22.0"
+  },
+  "name": "resenha",
+  "description": "Resenha is a simple group chat web application with a modern dark theme. Users can join a single open chat room, set their display name, and exchange messages with others. Messages automatically expire after 24 hours.",
+  "version": "1.0.0",
+  "main": "index.js",
+  "devDependencies": {
+    "live-server": "^1.2.2"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "live-server --port=3000 --open=public --entry-file=./public/index.html"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

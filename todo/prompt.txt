@@ -1,0 +1,6 @@
+make it in fact only change pass by scheduling but with hour and date, no now functionality, check input field for that doenst seem fully stylized integrated
+
+also check the user username history popup, make it a popup if isnt yet
+
+remove active user implementation, just user history and their username history popup (implemented?)
+make the popup appear on screen, not inside its own container thingy, like outside the user element, get it?
