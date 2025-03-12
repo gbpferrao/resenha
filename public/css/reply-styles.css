@@ -1,0 +1,149 @@
+/* Reply indicator styles - overrides for two-line display */
+.reply-indicator-container {
+  top: -65px !important; /* Position it above the message input - increased for two lines */
+}
+
+.reply-indicator {
+  display: flex !important;
+  flex-direction: column !important; /* Changed to column for two-line display */
+  min-height: 50px !important; /* Minimum height to ensure visibility */
+  position: relative !important; /* For cancel button positioning */
+  padding: 8px 10px !important;
+}
+
+.reply-indicator-sender {
+  display: flex;
+  align-items: center;
+  margin-bottom: 4px; /* Space between sender and content */
+}
+
+.reply-indicator-text {
+  white-space: normal !important;
+  display: -webkit-box !important;
+  -webkit-line-clamp: 1 !important; /* Limit to 1 line */
+  -webkit-box-orient: vertical !important;
+  max-width: calc(100% - 25px) !important; /* Allow space for cancel button */
+}
+
+.cancel-reply {
+  position: absolute !important;
+  top: 6px !important;
+  right: 6px !important;
+  margin-left: 0 !important;
+}
+
+/* Styles for reply indicators inside message bubbles */
+.message .reply-indicator {
+  min-height: auto !important;
+  margin-bottom: 6px !important;
+  padding: 6px 10px !important;
+  border-radius: 3px !important;
+  border-left-width: 1px !important;
+  font-size: 0.75rem !important;
+  background-color: rgba(20, 20, 30, 0.5) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+  margin-top: -8px !important;
+  margin-left: -10px !important;
+  margin-right: -10px !important;
+  border-top-left-radius: 8px !important;
+  border-top-right-radius: 8px !important;
+  border-bottom-left-radius: 0 !important;
+  border-bottom-right-radius: 0 !important;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.05) !important;
+  position: relative !important;
+}
+
+.message .reply-indicator::after {
+  content: '' !important;
+  display: block !important;
+  height: 1px !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+  position: absolute !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+}
+
+.message .reply-indicator-sender {
+  margin-bottom: 2px !important;
+  color: rgba(176, 178, 192, 0.8) !important;
+  font-size: 0.7rem !important;
+}
+
+.message .reply-indicator-sender i {
+  opacity: 0.6 !important;
+  font-size: 0.65rem !important;
+}
+
+.message .reply-indicator-sender strong {
+  color: rgba(255, 255, 255, 0.9) !important;
+  font-weight: 500 !important;
+}
+
+.message .reply-indicator-text {
+  max-width: 100% !important;
+  -webkit-line-clamp: 1 !important;
+  color: rgba(176, 178, 192, 0.7) !important;
+  font-style: italic !important;
+  font-size: 0.7rem !important;
+  opacity: 0.9 !important;
+}
+
+/* Add spacing between the reply and the message content */
+.message .message-user {
+  margin-top: 6px !important; /* Space after the referenced message */
+  position: relative !important;
+  z-index: 2 !important;
+}
+
+.message .message-content {
+  position: relative !important;
+  z-index: 2 !important;
+}
+
+/* Make the main message section distinct */
+.message:has(.reply-indicator) {
+  padding-top: 8px !important; /* Add padding at top when reply is present */
+}
+
+/* Clear division between referenced message and actual message */
+.message:has(.reply-indicator)::after {
+  content: none !important; /* Remove the previous separator */
+}
+
+/* Mobile styles */
+@media (max-width: 768px) {
+  .reply-indicator-container {
+    top: -60px !important; /* Increased height for two-line structure */
+  }
+  
+  .reply-indicator {
+    padding: 6px 8px !important;
+    font-size: 0.75rem !important;
+    min-height: 45px !important; /* Ensure enough space for content */
+  }
+  
+  .reply-indicator-text {
+    max-width: calc(100% - 30px) !important;
+  }
+  
+  /* Adjust indicators inside messages as well */
+  .message .reply-indicator {
+    margin-top: -6px !important;
+    margin-left: -8px !important;
+    margin-right: -8px !important;
+    padding: 4px 8px !important;
+  }
+  
+  .message .reply-indicator-sender {
+    font-size: 0.65rem !important;
+  }
+  
+  .message .reply-indicator-text {
+    font-size: 0.65rem !important;
+  }
+  
+  .message .message-user {
+    margin-top: 4px !important;
+  }
+} 

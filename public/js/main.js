@@ -689,13 +689,15 @@ function showReplyIndicator(messageId, username, content) {
   }
   
   // Truncate content if too long
-  const truncatedContent = content.length > 40 ? content.substring(0, 37) + '...' : content;
+  const truncatedContent = content.length > 45 ? content.substring(0, 42) + '...' : content;
   
   replyIndicator.innerHTML = `
     <div class="reply-indicator">
-      <i class="fas fa-reply"></i>
-      <span>Respondendo a <strong>${escapeHTML(username)}</strong>: </span>
-      <span class="reply-indicator-text">${escapeHTML(truncatedContent)}</span>
+      <div class="reply-indicator-sender">
+        <i class="fas fa-reply"></i>
+        <strong>${escapeHTML(username)}</strong>
+      </div>
+      <div class="reply-indicator-text">${escapeHTML(truncatedContent)}</div>
       <button class="cancel-reply" title="Cancelar resposta">
         <i class="fas fa-times"></i>
       </button>
@@ -791,9 +793,11 @@ function renderMessages(messages) {
       const replyIndicator = document.createElement('div');
       replyIndicator.className = 'reply-indicator';
       replyIndicator.innerHTML = `
-        <i class="fas fa-reply"></i>
-        <span>Respondendo a <strong>${escapeHTML(message.replyTo.username)}</strong>: </span>
-        <span class="reply-indicator-text">${escapeHTML(message.replyTo.content)}</span>
+        <div class="reply-indicator-sender">
+          <i class="fas fa-reply"></i>
+          <strong>${escapeHTML(message.replyTo.username)}</strong>
+        </div>
+        <div class="reply-indicator-text">${escapeHTML(message.replyTo.content)}</div>
       `;
       messageDiv.appendChild(replyIndicator);
     }
@@ -850,9 +854,11 @@ function renderSingleMessage(message) {
     const replyIndicator = document.createElement('div');
     replyIndicator.className = 'reply-indicator';
     replyIndicator.innerHTML = `
-      <i class="fas fa-reply"></i>
-      <span>Respondendo a <strong>${escapeHTML(message.replyTo.username)}</strong>: </span>
-      <span class="reply-indicator-text">${escapeHTML(message.replyTo.content)}</span>
+      <div class="reply-indicator-sender">
+        <i class="fas fa-reply"></i>
+        <strong>${escapeHTML(message.replyTo.username)}</strong>
+      </div>
+      <div class="reply-indicator-text">${escapeHTML(message.replyTo.content)}</div>
     `;
     messageDiv.appendChild(replyIndicator);
   }

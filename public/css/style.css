@@ -591,29 +591,32 @@ footer {
   }
 
   .reply-indicator-container {
-    top: -50px; /* Slightly higher on mobile */
+    top: -60px; /* Increased height for two-line structure */
   }
   
   .reply-indicator {
     padding: 4px 8px;
-    font-size: 0.7rem;
+    font-size: 0.75rem;
+    min-height: 45px; /* Ensure enough space for content */
   }
   
   .reply-indicator-text {
-    max-width: 120px;
+    max-width: calc(100% - 30px);
   }
   
-  .reply-button {
-    padding: 3px;
+  /* Adjust indicators inside messages as well */
+  .message .reply-indicator {
+    min-height: auto;
+    padding: 3px 6px;
     font-size: 0.7rem;
+    margin-bottom: 4px;
+  }
+  
+  .message .reply-indicator-text {
+    max-width: 100%;
+    -webkit-line-clamp: 1;
   }
 
-  .message-wrapper::after {
-    /* Remove these styles as they're now handled by specific selectors */
-    font-size: inherit;
-    opacity: inherit;
-  }
-  
   .my-message-wrapper .reply-button {
     left: -32px; /* Slightly closer on mobile */
   }
@@ -1055,32 +1058,41 @@ footer {
   font-size: 0.8rem;
   color: var(--text-secondary);
   display: flex;
-  align-items: center;
-  flex-wrap: wrap; /* Allow wrapping */
+  flex-direction: column; /* Changed to column for two-line display */
   border-left: 2px solid var(--accent-color);
   max-width: 100%;
   overflow: hidden;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  min-height: 50px; /* Minimum height to ensure visibility */
+  position: relative; /* For cancel button positioning */
+}
+
+.reply-indicator-sender {
+  display: flex;
+  align-items: center;
+  margin-bottom: 4px; /* Space between sender and content */
 }
 
 .reply-indicator i {
-  margin-right: 6px;
+  margin-right: 4px;
   font-size: 0.7rem;
   opacity: 0.8;
 }
 
 .reply-indicator strong {
   color: var(--text-primary);
-  margin: 0 4px;
+  margin-right: 2px;
 }
 
 .reply-indicator-text {
-  margin-left: 4px;
   opacity: 0.9;
-  white-space: nowrap;
+  white-space: normal;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 150px;
+  max-width: calc(100% - 25px); /* Allow space for cancel button */
+  display: -webkit-box;
+  -webkit-line-clamp: 1; /* Limit to 1 line */
+  -webkit-box-orient: vertical;
 }
 
 .cancel-reply {
@@ -1088,7 +1100,9 @@ footer {
   border: none;
   color: var(--text-secondary);
   cursor: pointer;
-  margin-left: auto;
+  position: absolute;
+  top: 6px;
+  right: 6px;
   padding: 2px;
 }
 
