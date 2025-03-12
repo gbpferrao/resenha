@@ -685,7 +685,7 @@ function showReplyIndicator(messageId, username, content) {
     replyIndicator.className = 'reply-indicator-container';
     
     const messageInputContainer = document.querySelector('.message-input-container');
-    messageInputContainer.insertBefore(replyIndicator, messageInputContainer.firstChild);
+    messageInputContainer.appendChild(replyIndicator);
   }
   
   // Truncate content if too long
@@ -719,7 +719,15 @@ function clearReplyState() {
   // Remove reply indicator if exists
   const replyIndicator = document.querySelector('.reply-indicator-container');
   if (replyIndicator) {
-    replyIndicator.remove();
+    // Add the removing class for transition
+    replyIndicator.classList.add('removing');
+    
+    // Wait for transition to complete before removing
+    setTimeout(() => {
+      if (replyIndicator.parentNode) {
+        replyIndicator.parentNode.removeChild(replyIndicator);
+      }
+    }, 200); // Match transition duration in CSS
   }
 }
 

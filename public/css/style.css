@@ -360,6 +360,7 @@ footer {
   background-color: black;
   border-top: 1px solid #151515;
   padding: 8px;
+  padding-top: 12px; /* Increased top padding */
   display: flex;
   min-height: 64px;
   width: 100%;
@@ -376,6 +377,7 @@ footer {
   align-items: center;
   height: 100%;
   box-sizing: border-box;
+  position: relative; /* Add position relative to contain absolute positioned elements */
 }
 
 #message-input {
@@ -589,7 +591,7 @@ footer {
   }
 
   .reply-indicator-container {
-    padding: 0 4px;
+    top: -50px; /* Slightly higher on mobile */
   }
   
   .reply-indicator {
@@ -1027,11 +1029,23 @@ footer {
 
 /* Reply indicator styles - now in CSS file instead of JS */
 .reply-indicator-container {
+  position: absolute;
   width: 100%;
   max-width: 100%;
-  margin-bottom: 8px;
+  left: 0;
+  right: 0;
+  top: -58px; /* Position it above the message input */
   padding: 0 8px;
   box-sizing: border-box;
+  z-index: 10;
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.reply-indicator-container.removing {
+  opacity: 0;
+  transform: translateY(10px);
 }
 
 .reply-indicator {
@@ -1046,6 +1060,7 @@ footer {
   border-left: 2px solid var(--accent-color);
   max-width: 100%;
   overflow: hidden;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }
 
 .reply-indicator i {
