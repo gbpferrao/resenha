@@ -139,6 +139,7 @@ header h1 {
   color: var(--text-secondary);
   font-size: 0.8rem;
   pointer-events: none;
+  z-index: 10;
 }
 
 #update-username-btn {
@@ -250,12 +251,12 @@ header h1 {
 
 .my-message {
   background: linear-gradient(to bottom right, var(--user-msg-bg), rgba(10, 10, 15, 0.98));
-  border-left: 2px solid rgba(75, 85, 115, 0.4);
+  border-left: none;
 }
 
 .other-message {
   background: linear-gradient(to bottom right, var(--msg-bg), rgba(5, 5, 10, 0.98));
-  border-left: 2px solid rgba(30, 35, 50, 0.4);
+  border-left: none;
 }
 
 .my-message .message-content {
@@ -842,4 +843,73 @@ footer {
 
 .forgot-password {
   display: none;
+}
+
+/* Reply button */
+.reply-button {
+  position: absolute;
+  width: 28px;
+  height: 28px;
+  background-color: rgba(10, 10, 15, 0.7);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s, background-color 0.2s;
+  z-index: 10;
+  border: none;
+  color: #a2a4b4;
+}
+
+.my-message-wrapper .reply-button {
+  left: -14px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.other-message-wrapper .reply-button {
+  right: -14px;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.message-wrapper:hover .reply-button {
+  opacity: 1;
+}
+
+.reply-button:hover {
+  background-color: rgba(40, 45, 65, 0.9);
+  color: white;
+}
+
+/* Reply indicator styles */
+.reply-indicator {
+  background-color: rgba(30, 35, 50, 0.4);
+  border-radius: 4px;
+  padding: 4px 8px;
+  margin-bottom: 4px;
+  font-size: 0.7rem;
+  color: #a2a4b4;
+  display: flex;
+  align-items: center;
+}
+
+.reply-indicator i {
+  margin-right: 4px;
+  font-size: 0.65rem;
+}
+
+.reply-indicator-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 200px;
+}
+
+@media (max-width: 768px) {
+  .reply-indicator-text {
+    max-width: 150px;
+  }
 } 

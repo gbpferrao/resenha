@@ -83,6 +83,25 @@
         </div>
       </div>
 
+      <!-- User Activity Dashboard -->
+      <div class="admin-section">
+        <h2>Atividade de Usuários</h2>
+        
+        <!-- Currently Active Users -->
+        <div class="activity-card">
+          <div class="card-header">
+            <h3>Usuários Ativos Agora</h3>
+            <button id="refresh-activity-btn" class="icon-button">
+              <i class="fas fa-sync-alt"></i>
+            </button>
+          </div>
+          <div id="active-users-container" class="users-container">
+            <!-- Active users will appear here -->
+            <div class="no-data-message">Nenhum usuário ativo no momento</div>
+          </div>
+        </div>
+      </div>
+
       <!-- Danger Zone -->
       <div class="admin-section danger-zone">
         <h2>Zona de Perigo</h2>

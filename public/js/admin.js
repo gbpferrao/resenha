@@ -14,6 +14,10 @@ const togglePasswordVisibilityBtn = document.getElementById('toggle-password-vis
 const newPasswordInput = document.getElementById('new-password');
 const updatePasswordBtn = document.getElementById('update-password-btn');
 
+// User activity elements
+const refreshActivityBtn = document.getElementById('refresh-activity-btn');
+const activeUsersContainer = document.getElementById('active-users-container');
+
 // Emergency delete elements
 const emergencyDeleteBtn = document.getElementById('emergency-delete-btn');
 const deleteConfirmation = document.getElementById('delete-confirmation');
@@ -32,6 +36,9 @@ async function initAdminPage() {
   // Setup password visibility toggle
   setupPasswordVisibility();
   
+  // Load user activity
+  loadUserActivity();
+  
   // Setup emergency delete
   setupEmergencyDelete();
 }
@@ -39,6 +46,54 @@ async function initAdminPage() {
 // Password visibility toggle functionality
 function setupPasswordVisibility() {
   togglePasswordVisibilityBtn.addEventListener('click', togglePasswordVisibility);
+}
+
+// User Activity related functions
+function loadUserActivity() {
+  // Load active users
+  loadActiveUsers();
+  
+  // Set up refresh button
+  refreshActivityBtn.addEventListener('click', () => {
+    loadActiveUsers();
+  });
+}
+
+function loadActiveUsers() {
+  // In a real app, this would fetch from the database
+  // For now, we'll just use localStorage data
+  
+  // Clear current content
+  activeUsersContainer.innerHTML = '';
+  
+  const userHistory = JSON.parse(localStorage.getItem('resenha_user_history')) || [];
+  
+  // Filter to only show users active today
+  const today = new Date().toDateString();
+  const activeUsers = userHistory.filter(user => {
+    const lastAccessDate = new Date(user.lastAccess).toDateString();
+    return lastAccessDate === today;
+  });
+  
+  if (activeUsers.length === 0) {
+    activeUsersContainer.innerHTML = `
+      <div class="no-data-message">Nenhum usuário ativo no momento</div>
+    `;
+    return;
+  }
+  
+  // Create elements for each active user
+  activeUsers.forEach(user => {
+    const userElem = document.createElement('div');
+    userElem.className = 'device-entry';
+    userElem.innerHTML = `
+      <div class="device-info">
+        <span class="device-id">${user.deviceId.substring(0, 8)}...</span>
+        <span class="current-username">${user.username}</span>
+      </div>
+    `;
+    activeUsersContainer.appendChild(userElem);
+  });
 }
 
 // Authentication functions
@@ -82,6 +137,62 @@ function attemptAdminLogin() {
     adminPasswordInput.classList.add('shake');
     setTimeout(() => adminPasswordInput.classList.remove('shake'), 500);
   }
+}
+
+// Helper functions
+function generateRandomId() {
+  return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+}
+
+function getDeviceId() {
+  let deviceId = localStorage.getItem('resenha_device_id');
+  if (!deviceId) {
+    deviceId = generateRandomId();
+    localStorage.setItem('resenha_device_id', deviceId);
+  }
+  return deviceId;
+}
+
+// Track user logins
+function trackUserLogins() {
+  window.addEventListener('message', function(event) {
+    // Check origin for security
+    if (event.data && event.data.type === 'userLogin') {
+      const { username } = event.data;
+      const deviceId = getDeviceId();
+      const today = new Date().toDateString();
+      
+      // Get current history
+      let history = JSON.parse(localStorage.getItem('resenha_user_history')) || [];
+      
+      // Find this device/user combination
+      const existingUserIndex = history.findIndex(
+        user => user.deviceId === deviceId && user.username === username
+      );
+      
+      if (existingUserIndex >= 0) {
+        // Update existing record
+        history[existingUserIndex].lastAccess = today;
+        history[existingUserIndex].accessCount += 1;
+      } else {
+        // Add new record
+        history.push({
+          deviceId,
+          username,
+          lastAccess: today,
+          accessCount: 1
+        });
+      }
+      
+      // Save updated history
+      localStorage.setItem('resenha_user_history', JSON.stringify(history));
+      
+      // Refresh display if admin panel is open
+      if (adminPanel.style.display !== 'none') {
+        loadActiveUsers();
+      }
+    }
+  });
 }
 
 // Password management functions
@@ -314,4 +425,7 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Init the app
   initAdminPage();
+  
+  // Setup tracking of user logins
+  trackUserLogins();
 }); 
