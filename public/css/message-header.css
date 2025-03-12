@@ -1,0 +1,35 @@
+/* Message header styling for inline username and timestamp */
+.message-time {
+  position: relative !important;
+  float: right !important;
+  margin-top: 1px !important;
+  top: 0 !important;
+  right: 0 !important;
+}
+
+.message-user {
+  display: inline-block !important;
+  padding-right: 0 !important;
+  margin-right: 0.5em !important;
+  max-width: calc(100% - 60px) !important; /* Leave space for timestamp */
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+/* Make timestamp more visible */
+.message-time {
+  opacity: 0.8 !important;
+  font-size: 0.65rem !important;
+  color: rgba(176, 178, 192, 0.8) !important;
+}
+
+/* Add some additional space between header and content */
+.message-content {
+  margin-top: 2px !important;
+}
+
+/* Ensure the message content has the right spacing */
+.message {
+  padding-top: 6px !important;
+} 
