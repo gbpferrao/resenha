@@ -600,60 +600,58 @@ async function initUsername() {
   }
 }
 
-// Modify the send message function to include reply data if present
-async function sendMessage(content) {
+// Send a new message
+async function sendMessage() {
+  const content = messageInput.value.trim();
+  const username = usernameInput.value.trim();
+  
+  // Don't send if empty
+  if (!content || !username) {
+    if (!content) {
+      messageInput.focus();
+    } else if (!username) {
+      usernameInput.focus();
+    }
+    return;
+  }
+  
   try {
-    const username = usernameInput.value.trim();
-    if (!username) {
-      showError('Por favor, defina seu nome de usuário.');
-      usernameInput.focus();
-      return;
-    }
-    
-    // Check username availability before sending
-    const isUsernameAvailable = await handleUsernameChange();
-    if (!isUsernameAvailable) {
-      usernameInput.focus();
-      return; // Don't send if username is not available
-    }
-
-    if (!window.database) {
-      showError('Firebase não está inicializado. Verifique sua conexão.');
-      return;
-    }
-    
-    const newMessageRef = window.database.ref('messages').push();
-    
+    // Create message object
     const messageData = {
       content: content,
       username: username,
       timestamp: Date.now()
     };
     
-    // If replying to a message, include reply data
+    // Add reply info if replying to a message
     if (replyingToMessage) {
       messageData.replyTo = {
         id: replyingToMessage.id,
         username: replyingToMessage.username,
         content: replyingToMessage.content
       };
-      
-      // Clear the reply state
-      clearReplyState();
     }
     
-    await newMessageRef.set(messageData);
+    // Add to Firebase
+    const messageRef = window.database.ref('messages').push();
+    await messageRef.set(messageData);
     
-    // Add message ID to sent messages
-    const sentMessageIds = getSentMessageIds();
-    sentMessageIds.push(newMessageRef.key);
-    localStorage.setItem('resenha_sent_message_ids', JSON.stringify(sentMessageIds));
+    // Track this message as sent by this user
+    trackSentMessage(messageRef.key);
     
-    return newMessageRef.key;
+    // Clear inputs and reply state
+    messageInput.value = '';
+    clearReplyState();
+    
+    // Ensure username is stored
+    localStorage.setItem('resenha_username', username);
+    
+    // Update presence with every message
+    window.updatePresence();
+    
   } catch (error) {
     console.error('Error sending message:', error);
-    showError('Erro ao enviar mensagem: ' + error.message);
-    throw error;
+    showError('Falha ao enviar mensagem. Por favor, tente novamente.');
   }
 }
 
@@ -679,7 +677,7 @@ function initReplyFunctionality() {
       };
       
       // Show reply indicator
-      showReplyIndicator(messageUsername, messageContent);
+      showReplyIndicator(messageId, messageUsername, messageContent);
       
       // Focus on message input
       messageInput.focus();
@@ -692,9 +690,15 @@ function initReplyFunctionality() {
   });
 }
 
-// Show reply indicator above message input
-function showReplyIndicator(username, content) {
-  // Create reply indicator if it doesn't exist
+// Show reply indicator
+function showReplyIndicator(messageId, username, content) {
+  // Store the message we're replying to
+  replyingToMessage = {
+    id: messageId,
+    username: username,
+    content: content
+  };
+  
   let replyIndicator = document.querySelector('.reply-indicator-container');
   
   if (!replyIndicator) {
@@ -711,39 +715,22 @@ function showReplyIndicator(username, content) {
   replyIndicator.innerHTML = `
     <div class="reply-indicator">
       <i class="fas fa-reply"></i>
-      <span>Respondendo a <strong>${username}</strong>: </span>
-      <span class="reply-indicator-text">${truncatedContent}</span>
+      <span>Respondendo a <strong>${escapeHTML(username)}</strong>: </span>
+      <span class="reply-indicator-text">${escapeHTML(truncatedContent)}</span>
       <button class="cancel-reply" title="Cancelar resposta">
         <i class="fas fa-times"></i>
       </button>
     </div>
   `;
   
-  // Add styles if not already added
-  if (!document.getElementById('reply-styles')) {
-    const styles = document.createElement('style');
-    styles.id = 'reply-styles';
-    styles.textContent = `
-      .reply-indicator-container {
-        width: 100%;
-        margin-bottom: 8px;
-      }
-      
-      .cancel-reply {
-        background: transparent;
-        border: none;
-        color: #a2a4b4;
-        cursor: pointer;
-        margin-left: 8px;
-        padding: 2px;
-      }
-      
-      .cancel-reply:hover {
-        color: white;
-      }
-    `;
-    document.head.appendChild(styles);
+  // Add event listener to cancel button
+  const cancelButton = replyIndicator.querySelector('.cancel-reply');
+  if (cancelButton) {
+    cancelButton.addEventListener('click', clearReplyState);
   }
+  
+  // Focus on the message input
+  messageInput.focus();
 }
 
 // Clear the reply state
@@ -773,7 +760,7 @@ function renderMessages(messages) {
     return;
   }
   
-  // Sort messages by timestamp (newest first)
+  // Sort messages by timestamp (newest first for the column-reverse layout)
   const sortedMessages = [...messages].sort((a, b) => 
     new Date(b.timestamp) - new Date(a.timestamp)
   );
@@ -798,32 +785,52 @@ function renderMessages(messages) {
     messageWrapper.setAttribute('data-id', message.id);
     messageWrapper.setAttribute('data-timestamp', message.timestamp);
     
-    const timestamp = new Date(message.timestamp);
-    const formattedTime = formatTimestamp(timestamp);
+    // Create reply button
+    const replyButton = document.createElement('button');
+    replyButton.className = 'reply-button';
+    replyButton.title = 'Responder';
+    replyButton.innerHTML = '<i class="fas fa-reply"></i>';
     
-    // Build reply content if this is a reply
-    let replyHtml = '';
+    // Add click event to reply button
+    replyButton.addEventListener('click', () => {
+      showReplyIndicator(message.id, message.username, message.content);
+    });
+    
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message ${isOwnMessage ? 'my-message' : 'other-message'}`;
+    
+    // Add reply indicator if this message is a reply
     if (message.replyTo) {
-      replyHtml = `
-        <div class="reply-indicator">
-          <i class="fas fa-reply"></i>
-          <span>Respondendo a <strong>${escapeHTML(message.replyTo.username)}</strong>: </span>
-          <span class="reply-indicator-text">${escapeHTML(message.replyTo.content)}</span>
-        </div>
+      const replyIndicator = document.createElement('div');
+      replyIndicator.className = 'reply-indicator';
+      replyIndicator.innerHTML = `
+        <i class="fas fa-reply"></i>
+        <span>Respondendo a <strong>${escapeHTML(message.replyTo.username)}</strong>: </span>
+        <span class="reply-indicator-text">${escapeHTML(message.replyTo.content)}</span>
       `;
+      messageDiv.appendChild(replyIndicator);
     }
     
-    messageWrapper.innerHTML = `
-      <button class="reply-button" title="Responder">
-        <i class="fas fa-reply"></i>
-      </button>
-      <div class="message ${isOwnMessage ? 'my-message' : 'other-message'}">
-        ${replyHtml}
-        <div class="message-time">${formattedTime}</div>
-        <div class="message-user">${escapeHTML(message.username)}</div>
-        <div class="message-content">${escapeHTML(message.content)}</div>
-      </div>
-    `;
+    const formattedTime = formatTimestamp(new Date(message.timestamp));
+    
+    const timeDiv = document.createElement('div');
+    timeDiv.className = 'message-time';
+    timeDiv.textContent = formattedTime;
+    
+    const usernameDiv = document.createElement('div');
+    usernameDiv.className = 'message-user';
+    usernameDiv.textContent = message.username;
+    
+    const contentDiv = document.createElement('div');
+    contentDiv.className = 'message-content';
+    contentDiv.textContent = message.content;
+    
+    messageDiv.appendChild(timeDiv);
+    messageDiv.appendChild(usernameDiv);
+    messageDiv.appendChild(contentDiv);
+    
+    messageWrapper.appendChild(replyButton);
+    messageWrapper.appendChild(messageDiv);
     
     messagesContainer.appendChild(messageWrapper);
   });
@@ -839,27 +846,19 @@ function renderSingleMessage(message) {
   messageWrapper.setAttribute('data-id', message.id);
   messageWrapper.setAttribute('data-timestamp', message.timestamp);
   
-  // Build reply content if this is a reply
-  let replyHtml = '';
-  if (message.replyTo) {
-    replyHtml = `
-      <div class="reply-indicator">
-        <i class="fas fa-reply"></i>
-        <span>Respondendo a <strong>${escapeHTML(message.replyTo.username)}</strong>: </span>
-        <span class="reply-indicator-text">${escapeHTML(message.replyTo.content)}</span>
-      </div>
-    `;
-  }
-  
   // Create reply button
   const replyButton = document.createElement('button');
   replyButton.className = 'reply-button';
   replyButton.title = 'Responder';
   replyButton.innerHTML = '<i class="fas fa-reply"></i>';
+  replyButton.addEventListener('click', function() {
+    showReplyIndicator(message.id, message.username, message.content);
+  });
   
   const messageDiv = document.createElement('div');
   messageDiv.className = `message ${isMyMessage ? 'my-message' : 'other-message'}`;
   
+  // Add reply indicator if this is a reply
   if (message.replyTo) {
     const replyIndicator = document.createElement('div');
     replyIndicator.className = 'reply-indicator';
@@ -871,6 +870,10 @@ function renderSingleMessage(message) {
     messageDiv.appendChild(replyIndicator);
   }
   
+  const messageTime = document.createElement('div');
+  messageTime.className = 'message-time';
+  messageTime.textContent = formatTimestamp(new Date(message.timestamp));
+  
   const usernameDiv = document.createElement('div');
   usernameDiv.className = 'message-user';
   usernameDiv.textContent = message.username;
@@ -879,13 +882,9 @@ function renderSingleMessage(message) {
   contentDiv.className = 'message-content';
   contentDiv.textContent = message.content;
   
-  const timeDiv = document.createElement('div');
-  timeDiv.className = 'message-time';
-  timeDiv.textContent = formatTimestamp(message.timestamp);
-  
+  messageDiv.appendChild(messageTime);
   messageDiv.appendChild(usernameDiv);
   messageDiv.appendChild(contentDiv);
-  messageDiv.appendChild(timeDiv);
   
   messageWrapper.appendChild(replyButton);
   messageWrapper.appendChild(messageDiv);
@@ -901,13 +900,14 @@ function formatTimestamp(timestamp) {
   return messageDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
-function escapeHTML(str) {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
+function escapeHTML(unsafe) {
+  if (!unsafe) return '';
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
 function showError(message, duration = 3000) {
@@ -946,76 +946,114 @@ function showNotification(message) {
   }, 3000);
 }
 
-// Event listeners
-sendMessageBtn.addEventListener('click', async () => {
-  const content = messageInput.value.trim();
-  
-  if (!content) return;
-  
-  messageInput.value = '';
-  
-  const result = await sendMessage(content);
-  
-  if (result) {
-    // Reload messages to show the new one
-    loadMessages();
-  }
+// Event listeners for message sending
+sendMessageBtn.addEventListener('click', () => {
+  sendMessage();
 });
 
-messageInput.addEventListener('keydown', async (e) => {
+// Keyboard events for message sending
+messageInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && !e.shiftKey) {
-    e.preventDefault();
-    sendMessageBtn.click();
+    e.preventDefault(); // Prevent newline
+    sendMessage();
+  } else if (e.key === 'Escape' && replyingToMessage) {
+    // Cancel reply with Escape key
+    clearReplyState();
   }
 });
 
-// Add notification styles
-const styleEl = document.createElement('style');
-styleEl.textContent = `
-  .error-toast {
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    background-color: rgba(180, 30, 30, 0.9);
-    color: white;
-    padding: 10px 20px;
-    border-radius: 5px;
-    z-index: 1000;
-    animation: slideIn 0.3s ease-out;
-    border-left: 3px solid #a03030;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
-  }
-  
-  .notification {
-    position: fixed;
-    bottom: 20px;
-    right: 20px;
-    background-color: rgba(45, 55, 75, 0.9);
-    color: white;
-    padding: 10px 20px;
-    border-radius: 5px;
-    z-index: 1000;
-    animation: slideIn 0.3s ease-out;
-    border-left: 3px solid rgba(70, 90, 140, 0.7);
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
-  }
-  
-  .notification.fade-out {
-    opacity: 0;
-    transition: opacity 0.5s ease-out;
-  }
-  
-  @keyframes slideIn {
-    from { transform: translateX(100%); opacity: 0; }
-    to { transform: translateX(0); opacity: 1; }
-  }
-`;
-document.head.appendChild(styleEl);
+// Function to add global event delegation for message interactions
+function setupMessageInteractions() {
+  // Add a single event listener with event delegation
+  messagesContainer.addEventListener('click', (e) => {
+    const replyButton = e.target.closest('.reply-button');
+    if (replyButton) {
+      // Find parent message wrapper
+      const messageWrapper = replyButton.closest('.message-wrapper');
+      if (messageWrapper) {
+        const messageId = messageWrapper.getAttribute('data-id');
+        const messageDiv = messageWrapper.querySelector('.message');
+        const username = messageDiv.querySelector('.message-user').textContent;
+        const content = messageDiv.querySelector('.message-content').textContent;
+        
+        // Show reply indicator above message input
+        showReplyIndicator(messageId, username, content);
+      }
+    }
+  });
+}
 
-// Add real-time updates
-function setupRealTimeUpdates() {
+// Initialize the app
+async function initApp() {
+  // Setup Firebase
+  try {
+    await window.initializeFirebase();
+    
+    // Check password protection
+    checkAuthStatus();
+    
+    // Setup username
+    await initUsername();
+    
+    // Listen for new messages
+    listenToMessages();
+    
+    // Setup message interactions
+    setupMessageInteractions();
+    
+    console.log('App initialized successfully');
+  } catch (error) {
+    console.error('Error initializing app:', error);
+    showError('Erro ao inicializar o aplicativo. Verifique sua conexão e tente novamente.');
+  }
+}
+
+// Initialize when document is ready
+document.addEventListener('DOMContentLoaded', initApp);
+
+// Clean up old messages periodically
+async function cleanupOldMessages() {
+  try {
+    const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000);
+    const messagesRef = window.database.ref('messages');
+    const snapshot = await messagesRef.once('value');
+    
+    const deletePromises = [];
+    snapshot.forEach((childSnapshot) => {
+      const message = childSnapshot.val();
+      if (message.timestamp < oneDayAgo) {
+        deletePromises.push(messagesRef.child(childSnapshot.key).remove());
+      }
+    });
+    
+    await Promise.all(deletePromises);
+    console.log(`Cleaned up ${deletePromises.length} old messages`);
+  } catch (error) {
+    console.error('Error cleaning up old messages:', error);
+  }
+}
+
+// Track sent messages in localStorage
+function trackSentMessage(messageId) {
+  const sentMessageIds = getSentMessageIds();
+  sentMessageIds.push(messageId);
+  
+  // Keep only the most recent 100 messages
+  if (sentMessageIds.length > 100) {
+    sentMessageIds.splice(0, sentMessageIds.length - 100);
+  }
+  
+  localStorage.setItem('resenha_sent_message_ids', JSON.stringify(sentMessageIds));
+}
+
+// Listen for new messages
+function listenToMessages() {
   const messagesRef = window.database.ref('messages');
   
+  // Initial load of messages
+  loadMessages();
+  
+  // Real-time updates for new messages
   messagesRef.on('child_added', (snapshot) => {
     const message = snapshot.val();
     message.id = snapshot.key;
@@ -1052,90 +1090,8 @@ function setupRealTimeUpdates() {
   }, 60000); // Check every minute
 }
 
-// Load messages function
+// Load messages
 async function loadMessages() {
   const messages = await fetchMessages();
   renderMessages(messages);
-}
-
-// Update init function to initialize reply functionality
-function init() {
-  checkAuthStatus();
-  
-  // Set up event listeners
-  sendMessageBtn.addEventListener('click', async () => {
-    const content = messageInput.value.trim();
-    if (content) {
-      try {
-        await sendMessage(content);
-        messageInput.value = '';
-        messageInput.focus();
-      } catch (error) {
-        console.error('Error sending message:', error);
-      }
-    }
-  });
-  
-  messageInput.addEventListener('keydown', async (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      const content = messageInput.value.trim();
-      if (content) {
-        try {
-          await sendMessage(content);
-          messageInput.value = '';
-        } catch (error) {
-          console.error('Error sending message:', error);
-        }
-      }
-    }
-  });
-  
-  // Add event listener for username input
-  usernameInput.addEventListener('change', handleUsernameChange);
-  usernameInput.addEventListener('blur', handleUsernameChange);
-  
-  retryFirebaseBtn.addEventListener('click', () => {
-    window.location.reload();
-  });
-  
-  // Load initial messages
-  loadMessages();
-  
-  // Setup real-time updates
-  setupRealTimeUpdates();
-  
-  // Initialize username from localStorage
-  initUsername();
-  
-  // Setup inactive user cleanup
-  window.setupInactiveUserCleanup();
-  
-  // Initialize reply functionality
-  initReplyFunctionality();
-}
-
-// Initialize when document is ready
-document.addEventListener('DOMContentLoaded', init);
-
-// Clean up old messages periodically
-async function cleanupOldMessages() {
-  try {
-    const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000);
-    const messagesRef = window.database.ref('messages');
-    const snapshot = await messagesRef.once('value');
-    
-    const deletePromises = [];
-    snapshot.forEach((childSnapshot) => {
-      const message = childSnapshot.val();
-      if (message.timestamp < oneDayAgo) {
-        deletePromises.push(messagesRef.child(childSnapshot.key).remove());
-      }
-    });
-    
-    await Promise.all(deletePromises);
-    console.log(`Cleaned up ${deletePromises.length} old messages`);
-  } catch (error) {
-    console.error('Error cleaning up old messages:', error);
-  }
 } 

@@ -165,6 +165,7 @@ header h1 {
   position: relative;
   display: flex;
   flex-direction: column;
+  overflow-x: hidden; /* Prevent horizontal scrolling */
 }
 
 /* Remove gradient fades */
@@ -178,8 +179,12 @@ header h1 {
   flex-direction: column-reverse; /* Ensure newest messages appear at the bottom */
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden; /* Prevent horizontal scrolling */
   -webkit-overflow-scrolling: touch; /* For better scrolling on iOS */
   padding: 10px; /* Add some padding to the container but much less than before */
+  width: 100%; /* Ensure container is constrained */
+  max-width: 100%; /* Prevent overflow */
+  margin: 0 auto; /* Center content */
 }
 
 /* Message wrapper */
@@ -187,7 +192,7 @@ header h1 {
   display: flex;
   flex-direction: column;
   margin-bottom: 8px;
-  max-width: 92%; /* Allow even more width on mobile */
+  max-width: 90%; /* Slightly adjusted to prevent overflow */
   align-self: flex-start;
 }
 
@@ -306,9 +311,11 @@ footer {
 .message-input-container {
   display: flex;
   width: 100%;
-  padding: 0;
+  max-width: 100%;
+  padding: 0 8px;
   align-items: center;
   height: 100%;
+  box-sizing: border-box;
 }
 
 #message-input {
@@ -324,6 +331,7 @@ footer {
   transition: all 0.3s ease;
   font-family: inherit;
   font-size: 0.9rem;
+  max-width: calc(100% - 55px); /* Leave space for send button */
 }
 
 #message-input:hover {
@@ -518,6 +526,24 @@ footer {
     right: 0;
     width: 100%;
     text-align: center;
+  }
+
+  .reply-indicator-container {
+    padding: 0 4px;
+  }
+  
+  .reply-indicator {
+    padding: 4px 8px;
+    font-size: 0.7rem;
+  }
+  
+  .reply-indicator-text {
+    max-width: 120px;
+  }
+  
+  .reply-button {
+    padding: 3px;
+    font-size: 0.7rem;
   }
 }
 
@@ -884,32 +910,84 @@ footer {
   color: white;
 }
 
-/* Reply indicator styles */
+/* Reply indicator styles - now in CSS file instead of JS */
+.reply-indicator-container {
+  width: 100%;
+  max-width: 100%;
+  margin-bottom: 8px;
+  padding: 0 8px;
+  box-sizing: border-box;
+}
+
 .reply-indicator {
-  background-color: rgba(30, 35, 50, 0.4);
+  background-color: var(--input-bg);
+  padding: 6px 10px;
   border-radius: 4px;
-  padding: 4px 8px;
-  margin-bottom: 4px;
-  font-size: 0.7rem;
-  color: #a2a4b4;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
   display: flex;
   align-items: center;
+  flex-wrap: wrap; /* Allow wrapping */
+  border-left: 2px solid var(--accent-color);
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .reply-indicator i {
-  margin-right: 4px;
-  font-size: 0.65rem;
+  margin-right: 6px;
+  font-size: 0.7rem;
+  opacity: 0.8;
+}
+
+.reply-indicator strong {
+  color: var(--text-primary);
+  margin: 0 4px;
 }
 
 .reply-indicator-text {
+  margin-left: 4px;
+  opacity: 0.9;
+  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 200px;
+  max-width: 150px;
 }
 
-@media (max-width: 768px) {
-  .reply-indicator-text {
-    max-width: 150px;
-  }
+.cancel-reply {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  margin-left: auto;
+  padding: 2px;
+}
+
+.cancel-reply:hover {
+  color: var(--text-primary);
+}
+
+/* Reply button styles */
+.reply-button {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px;
+  align-self: flex-end;
+  opacity: 0.6;
+  transition: all 0.2s ease;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  margin: 0 8px 2px 0;
+}
+
+.reply-button:hover {
+  background-color: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+  opacity: 1;
+}
+
+.my-message-wrapper .reply-button {
+  align-self: flex-start;
+  margin: 0 0 2px 8px;
 } 
