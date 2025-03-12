@@ -785,7 +785,7 @@ function renderMessages(messages) {
     messageWrapper.setAttribute('data-id', message.id);
     messageWrapper.setAttribute('data-timestamp', message.timestamp);
     
-    // Create reply button
+    // Create floating reply button (absolute positioned) 
     const replyButton = document.createElement('button');
     replyButton.className = 'reply-button';
     replyButton.title = 'Responder';
@@ -846,7 +846,7 @@ function renderSingleMessage(message) {
   messageWrapper.setAttribute('data-id', message.id);
   messageWrapper.setAttribute('data-timestamp', message.timestamp);
   
-  // Create reply button
+  // Create floating reply button (absolute positioned)
   const replyButton = document.createElement('button');
   replyButton.className = 'reply-button';
   replyButton.title = 'Responder';
