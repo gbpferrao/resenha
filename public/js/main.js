@@ -355,7 +355,7 @@ usernameInput.addEventListener('input', () => {
   
   showUsernameMessage('checking', 'Verificando disponibilidade...');
   
-  // Debounce the check to avoid too many database calls
+  // Debounce the check with a longer timeout to reduce database calls
   usernameStatusTimeout = setTimeout(() => {
     if (username) {
       handleUsernameChange();
@@ -363,7 +363,7 @@ usernameInput.addEventListener('input', () => {
       // Empty username, hide all messages
       hideUsernameMessages();
     }
-  }, 500); // Wait 500ms after typing stops
+  }, 800); // Increased debounce time from 500ms to 800ms
 });
 
 // Helper functions for showing/hiding username validation messages
@@ -493,24 +493,7 @@ async function initUsername() {
     try {
       // Ensure username meets length requirements
       if (savedUsername.length < 3 || savedUsername.length > 15) {
-        // Create a valid username
-        const newUsername = `User_${Math.floor(Math.random() * 9999)}`;
-        usernameInput.value = newUsername;
-        localStorage.setItem('resenha_username', newUsername);
-        
-        // Register the new username
-        await window.registerActiveUsername(newUsername);
-        
-        showUsernameMessage('valid', `Nome "${newUsername}" registrado.`);
-        usernameInput.classList.add('valid');
-        
-        // Hide message after 3 seconds
-        setTimeout(() => {
-          if (usernameInput.classList.contains('valid')) {
-            hideUsernameMessages();
-          }
-        }, 3000);
-        
+        createAndRegisterRandomUsername();
         return;
       }
       
@@ -523,7 +506,6 @@ async function initUsername() {
         
         // Show success state briefly
         usernameInput.classList.add('valid');
-        
         showUsernameMessage('valid', `Nome "${savedUsername}" registrado.`);
         
         // Hide the success message after 3 seconds
@@ -534,70 +516,67 @@ async function initUsername() {
         }, 3000);
       } else {
         // Username is taken by someone else - generate a new one
-        let newUsername = '';
-        let attempts = 0;
-        let isAvailable = false;
-        
-        // Try up to 10 different usernames
-        while (!isAvailable && attempts < 10) {
-          // Ensure we generate a username that's not too long (max 15 chars)
-          const baseUsername = savedUsername.length > 10 ? savedUsername.substring(0, 10) : savedUsername;
-          newUsername = `${baseUsername}_${Math.floor(Math.random() * 999)}`;
-          isAvailable = !(await window.isUsernameActive(newUsername));
-          attempts++;
-        }
-        
-        // If we couldn't find an available variation, create a completely random one
-        if (!isAvailable) {
-          newUsername = `User_${Math.floor(Math.random() * 9999)}`;
-        }
-        
-        // Set the new username
-        usernameInput.value = newUsername;
-        localStorage.setItem('resenha_username', newUsername);
-        
-        // Register the new username
-        await window.registerActiveUsername(newUsername);
-        
-        // Show notification to user
-        showError(`Nome "${savedUsername}" já usado. Atribuímos "${newUsername}" para você.`);
-        
-        // Show validation state
-        usernameInput.classList.add('valid');
-        
-        showUsernameMessage('valid', `Nome novo "${newUsername}" registrado.`);
-        
-        // Hide the success message after 5 seconds
-        setTimeout(() => {
-          if (usernameInput.classList.contains('valid')) {
-            hideUsernameMessages();
-          }
-        }, 5000);
+        createAndRegisterRandomUsername(savedUsername);
       }
     } catch (error) {
       console.error('Error during username initialization:', error);
-      
-      // Create a new random username on error
-      const defaultUsername = `User_${Math.floor(Math.random() * 9999)}`;
-      usernameInput.value = defaultUsername;
-      localStorage.setItem('resenha_username', defaultUsername);
-      
-      // Attempt to register it
-      window.registerActiveUsername(defaultUsername).catch(e => {
-        console.error('Error registering fallback username:', e);
-      });
+      createAndRegisterRandomUsername();
     }
   } else {
     // No saved username - generate a random one
-    const defaultUsername = `User_${Math.floor(Math.random() * 9999)}`;
-    usernameInput.value = defaultUsername;
-    localStorage.setItem('resenha_username', defaultUsername);
-    
-    // Register the username
-    window.registerActiveUsername(defaultUsername).catch(error => {
-      console.error('Error registering initial username:', error);
-    });
+    createAndRegisterRandomUsername();
   }
+}
+
+// Helper function to create and register a random username
+async function createAndRegisterRandomUsername(baseUsername = null) {
+  let newUsername = '';
+  
+  if (baseUsername) {
+    // Try to create a username based on the existing one
+    let attempts = 0;
+    let isAvailable = false;
+    
+    // Try up to 5 different usernames (reduced from 10 to improve responsiveness)
+    while (!isAvailable && attempts < 5) {
+      // Ensure we generate a username that's not too long (max 15 chars)
+      const baseName = baseUsername.length > 10 ? baseUsername.substring(0, 10) : baseUsername;
+      newUsername = `${baseName}_${Math.floor(Math.random() * 999)}`;
+      isAvailable = !(await window.isUsernameActive(newUsername));
+      attempts++;
+    }
+    
+    // If we couldn't find an available variation, create a completely random one
+    if (!isAvailable) {
+      newUsername = `User_${Math.floor(Math.random() * 9999)}`;
+    }
+  } else {
+    // Generate a completely random username
+    newUsername = `User_${Math.floor(Math.random() * 9999)}`;
+  }
+  
+  // Set the new username
+  usernameInput.value = newUsername;
+  localStorage.setItem('resenha_username', newUsername);
+  
+  // Register the new username
+  await window.registerActiveUsername(newUsername);
+  
+  // Show notification to user if it was a fallback from an existing username
+  if (baseUsername) {
+    showError(`Nome "${baseUsername}" já usado. Atribuímos "${newUsername}" para você.`);
+  }
+  
+  // Show validation state
+  usernameInput.classList.add('valid');
+  showUsernameMessage('valid', `Nome "${newUsername}" registrado.`);
+  
+  // Hide the success message after 3 seconds
+  setTimeout(() => {
+    if (usernameInput.classList.contains('valid')) {
+      hideUsernameMessages();
+    }
+  }, 3000);
 }
 
 // Send a new message
@@ -646,8 +625,8 @@ async function sendMessage() {
     // Ensure username is stored
     localStorage.setItem('resenha_username', username);
     
-    // Update presence with every message
-    window.updatePresence();
+    // Update presence - this is now more efficient and doesn't require a full availability check
+    window.updatePresence(username);
     
   } catch (error) {
     console.error('Error sending message:', error);
@@ -992,14 +971,35 @@ async function initApp() {
     // Check password protection
     checkAuthStatus();
     
-    // Setup username
+    // Initialize the enhanced presence system
+    if (window.setupPresenceSystem) {
+      window.setupPresenceSystem();
+    }
+    
+    // Setup username with the improved system
     await initUsername();
+    
+    // Setup inactive user cleanup
+    if (window.setupInactiveUserCleanup) {
+      window.setupInactiveUserCleanup();
+    }
     
     // Listen for new messages
     listenToMessages();
     
     // Setup message interactions
     setupMessageInteractions();
+    
+    // Add event listener for updating presence when tab becomes visible
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        // Update presence when tab becomes visible again
+        const username = localStorage.getItem('resenha_username');
+        if (username) {
+          window.updatePresence(username);
+        }
+      }
+    });
     
     console.log('App initialized successfully');
   } catch (error) {

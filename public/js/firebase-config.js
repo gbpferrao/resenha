@@ -167,9 +167,28 @@ window.setSuperMasterPasswordInFirebase = async function(newPassword) {
 // ----------------- Enhanced Username Uniqueness System -----------------
 
 // Constants for username presence system
-const USERNAME_ACTIVITY_TIMEOUT = 3 * 60 * 1000; // 3 minutes (reduced from 5)
-const PRESENCE_UPDATE_INTERVAL = 30 * 1000; // 30 seconds (reduced from 1 minute)
-const INACTIVE_CLEANUP_INTERVAL = 60 * 1000; // 1 minute (reduced from 5 minutes)
+const USERNAME_ACTIVITY_TIMEOUT = 5 * 60 * 1000; // 5 minutes
+const PRESENCE_UPDATE_INTERVAL = 60 * 1000; // 1 minute heartbeat
+const INACTIVE_CLEANUP_INTERVAL = 2 * 60 * 1000; // 2 minutes
+const SESSION_ID = generateSessionId(); // Unique session ID for this browser tab
+
+// Generate a unique session ID for this browser instance
+function generateSessionId() {
+  return Date.now().toString(36) + Math.random().toString(36).substring(2, 9);
+}
+
+// Generate or retrieve device ID
+window.getOrCreateDeviceId = function() {
+  let deviceId = localStorage.getItem('resenha_device_id');
+  
+  if (!deviceId) {
+    deviceId = Math.random().toString(36).substring(2, 15) + 
+               Math.random().toString(36).substring(2, 15);
+    localStorage.setItem('resenha_device_id', deviceId);
+  }
+  
+  return deviceId;
+}
 
 // Get reference to active users
 window.getActiveUsersRef = function() {
@@ -178,6 +197,15 @@ window.getActiveUsersRef = function() {
     return null;
   }
   return window.database.ref('activeUsers');
+}
+
+// Get reference to user sessions
+window.getUserSessionsRef = function() {
+  if (!window.database) {
+    console.error("Database not initialized");
+    return null;
+  }
+  return window.database.ref('userSessions');
 }
 
 // Get device information for better tracking
@@ -192,6 +220,51 @@ window.getDeviceInfo = function() {
     timestamp: now.toISOString(),
     localTime: now.toLocaleTimeString()
   };
+}
+
+// Create a more efficient presence system using onDisconnect
+window.setupPresenceSystem = function() {
+  const database = window.database;
+  if (!database) return;
+  
+  // Get the device ID
+  const deviceId = window.getOrCreateDeviceId();
+  
+  // Reference to our device's connection state
+  const connectedRef = database.ref('.info/connected');
+  
+  // Reference to our device's presence
+  const devicePresenceRef = database.ref(`/devices/${deviceId}`);
+  
+  // When we connect or disconnect, update our status
+  connectedRef.on('value', (snapshot) => {
+    if (snapshot.val() === true) {
+      console.log('Connected to Firebase, setting up presence system');
+      
+      // Set up what happens when we disconnect
+      devicePresenceRef.onDisconnect().update({
+        connected: false,
+        lastSeen: firebase.database.ServerValue.TIMESTAMP,
+        sessionId: SESSION_ID
+      });
+      
+      // Set that we're online
+      devicePresenceRef.update({
+        connected: true,
+        lastSeen: firebase.database.ServerValue.TIMESTAMP,
+        deviceInfo: window.getDeviceInfo(),
+        sessionId: SESSION_ID
+      });
+    }
+  });
+  
+  // Set up cleanup on page close/refresh
+  window.addEventListener('beforeunload', () => {
+    devicePresenceRef.update({
+      connected: false,
+      lastSeen: Date.now()
+    });
+  });
 }
 
 // Function to check if a username is already active
@@ -227,10 +300,16 @@ window.isUsernameActive = async function(username) {
     }
     
     // Check if this is the same device trying to use the same name
-    const deviceId = localStorage.getItem('resenha_device_id');
+    const deviceId = window.getOrCreateDeviceId();
     if (userData.deviceId === deviceId) {
       // Same device, allow reuse of username
       console.log(`Same device reconnecting with username: ${username}`);
+      return false;
+    }
+    
+    // Check if this is the same session trying to reconnect
+    if (userData.sessionId === SESSION_ID) {
+      console.log(`Same session reconnecting with username: ${username}`);
       return false;
     }
     
@@ -254,45 +333,39 @@ window.registerActiveUsername = async function(username) {
       return false;
     }
     
-    // Generate device ID if none exists
-    if (!localStorage.getItem('resenha_device_id')) {
-      const deviceId = Math.random().toString(36).substring(2, 15) + 
-                       Math.random().toString(36).substring(2, 15);
-      localStorage.setItem('resenha_device_id', deviceId);
-    }
+    // Get device ID
+    const deviceId = window.getOrCreateDeviceId();
     
-    const deviceId = localStorage.getItem('resenha_device_id');
-    
-    // Set username as active with current timestamp and device info
-    await activeUsersRef.child(username).set({
+    // Set up new user entry
+    const userData = {
       username: username,
       deviceId: deviceId,
+      sessionId: SESSION_ID,
       lastSeen: Date.now(),
       deviceInfo: window.getDeviceInfo(),
       connected: true
-    });
+    };
+    
+    // Set username as active
+    await activeUsersRef.child(username).set(userData);
     
     console.log(`Registered username as active: ${username}`);
     
-    // Set up periodic updates to maintain active status
-    window.startPresenceUpdates(username);
-    
-    // Set up cleanup on page unload
-    window.addEventListener('beforeunload', () => {
-      // Try to mark as disconnected immediately
-      const disconnectRef = activeUsersRef.child(username);
-      disconnectRef.child('connected').set(false);
-      disconnectRef.child('lastSeen').set(Date.now());
-      
-      // Also run the regular cleanup
-      window.cleanupPresence(username);
+    // Also store in session-specific data
+    await window.getUserSessionsRef().child(SESSION_ID).set({
+      username: username,
+      deviceId: deviceId,
+      lastSeen: Date.now()
     });
     
-    // Also set up onDisconnect handler for server-side cleanup
+    // Set up disconnect handler to update last seen and connected status
     activeUsersRef.child(username).onDisconnect().update({
       connected: false,
       lastSeen: firebase.database.ServerValue.TIMESTAMP
     });
+    
+    // Set up automatic heartbeat
+    window.setupUsernameHeartbeat(username);
     
     return true;
   } catch (error) {
@@ -301,44 +374,77 @@ window.registerActiveUsername = async function(username) {
   }
 }
 
-// Keep user's active status up to date
-window.startPresenceUpdates = function(username) {
-  if (!username || !window.getActiveUsersRef()) {
-    return;
+// Set up a heartbeat system to maintain username ownership
+window.setupUsernameHeartbeat = function(username) {
+  if (!username) return;
+  
+  // Clear any existing heartbeat
+  const existingHeartbeatId = localStorage.getItem('resenha_username_heartbeat');
+  if (existingHeartbeatId) {
+    clearInterval(parseInt(existingHeartbeatId, 10));
+    localStorage.removeItem('resenha_username_heartbeat');
   }
   
-  // Clear any existing interval to prevent duplicates
-  window.cleanupPresence(username);
-  
-  console.log(`Starting presence updates for ${username} every ${PRESENCE_UPDATE_INTERVAL/1000} seconds`);
-  
-  // Update last seen more frequently
-  const intervalId = setInterval(() => {
-    const activeUsersRef = window.getActiveUsersRef();
-    if (!activeUsersRef) return;
-    
-    activeUsersRef.child(username).update({
-      lastSeen: Date.now(),
-      connected: true
-    }).catch(error => {
-      console.error('Error updating active status:', error);
-    });
+  // Create new heartbeat interval
+  const heartbeatId = setInterval(() => {
+    window.updatePresence(username);
   }, PRESENCE_UPDATE_INTERVAL);
   
   // Store the interval ID for cleanup
-  localStorage.setItem('resenha_presence_interval', intervalId);
+  localStorage.setItem('resenha_username_heartbeat', heartbeatId.toString());
+  
+  // Also update now
+  window.updatePresence(username);
+}
+
+// Update user presence - streamlined version that doesn't require checks
+window.updatePresence = async function(username) {
+  try {
+    if (!username) {
+      // Try to get the username from session or localStorage
+      const sessionData = await window.getUserSessionsRef().child(SESSION_ID).once('value');
+      if (sessionData.exists()) {
+        username = sessionData.val().username;
+      } else {
+        username = localStorage.getItem('resenha_username');
+      }
+      
+      if (!username) return; // No username found
+    }
+    
+    const activeUsersRef = window.getActiveUsersRef();
+    if (!activeUsersRef) return;
+    
+    // Update the lastSeen timestamp 
+    await activeUsersRef.child(username).update({
+      lastSeen: Date.now(),
+      connected: true,
+      sessionId: SESSION_ID // Always make sure our session ID is recorded
+    });
+    
+    // Also update our session data
+    await window.getUserSessionsRef().child(SESSION_ID).update({
+      lastSeen: Date.now(),
+      username: username
+    });
+    
+  } catch (error) {
+    console.error('Error updating presence:', error);
+  }
 }
 
 // Clean up presence when user leaves
-window.cleanupPresence = function(username) {
-  // Clear the update interval
-  const intervalId = localStorage.getItem('resenha_presence_interval');
-  if (intervalId) {
-    clearInterval(parseInt(intervalId, 10));
-    localStorage.removeItem('resenha_presence_interval');
+window.cleanupPresence = function() {
+  // Clear the heartbeat interval
+  const heartbeatId = localStorage.getItem('resenha_username_heartbeat');
+  if (heartbeatId) {
+    clearInterval(parseInt(heartbeatId, 10));
+    localStorage.removeItem('resenha_username_heartbeat');
   }
   
-  // Mark user as offline by updating their status
+  // Get the current username 
+  const username = localStorage.getItem('resenha_username');
+  
   if (username && window.getActiveUsersRef()) {
     window.getActiveUsersRef().child(username).update({
       connected: false,
@@ -346,6 +452,14 @@ window.cleanupPresence = function(username) {
     }).catch(error => {
       console.error('Error updating offline status:', error);
     });
+  }
+  
+  // Clean up session data
+  if (window.getUserSessionsRef()) {
+    window.getUserSessionsRef().child(SESSION_ID).remove()
+      .catch(error => {
+        console.error('Error cleaning up session data:', error);
+      });
   }
 }
 
@@ -386,10 +500,28 @@ window.setupInactiveUserCleanup = function() {
       if (deletePromises.length > 0) {
         console.log(`Cleaned up ${deletePromises.length} inactive users`);
       }
+      
+      // Also clean up orphaned sessions
+      const sessionsSnapshot = await window.getUserSessionsRef().once('value');
+      const sessionCleanupPromises = [];
+      
+      sessionsSnapshot.forEach(childSnapshot => {
+        const sessionData = childSnapshot.val();
+        
+        if (sessionData.lastSeen < timeoutAgo) {
+          sessionCleanupPromises.push(window.getUserSessionsRef().child(childSnapshot.key).remove());
+        }
+      });
+      
+      await Promise.all(sessionCleanupPromises);
+      
     } catch (error) {
       console.error('Error cleaning up inactive users:', error);
     }
   }, INACTIVE_CLEANUP_INTERVAL);
   
-  localStorage.setItem('resenha_inactive_cleanup_interval', intervalId);
+  localStorage.setItem('resenha_inactive_cleanup_interval', intervalId.toString());
 }
+
+// Initialize the presence system immediately
+window.setupPresenceSystem();
