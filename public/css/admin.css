@@ -356,203 +356,85 @@
   background-color: rgba(207, 64, 64, 0.3);
 }
 
-/* User History Styles */
-.user-history-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+/* User history functionality removed as requested */
+
+/* Activity Card Styles */
+.activity-card {
+  background-color: var(--input-bg);
+  border-radius: 6px;
+  overflow: hidden;
   margin-bottom: 16px;
 }
 
-.user-history-filters {
+.card-header {
   display: flex;
-  gap: 10px;
-}
-
-.user-history-filters select {
-  background-color: var(--input-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  padding: 8px 12px;
-  color: var(--text-primary);
-  outline: none;
-  transition: border-color 0.3s;
-}
-
-.user-history-filters select:focus {
-  border-color: var(--accent-color);
-}
-
-#refresh-history-btn {
-  background-color: var(--bg-secondary);
-  border: 1px solid var(--border-color);
-  color: var(--text-primary);
-  border-radius: 4px;
-  padding: 8px 12px;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-
-#refresh-history-btn:hover {
-  background-color: var(--input-bg);
-  border-color: var(--accent-color);
-}
-
-/* User history table styles */
-.user-history-table {
-  overflow-x: auto;
-  margin-top: 16px;
-  -webkit-overflow-scrolling: touch; /* Better iOS scrolling */
-}
-
-.user-history-table table {
-  width: 100%;
-  border-collapse: collapse;
-  color: var(--text-primary);
-}
-
-.user-history-table th {
-  text-align: left;
+  justify-content: space-between;
+  align-items: center;
   padding: 12px 16px;
   background-color: rgba(0, 0, 0, 0.15);
-  color: var(--text-secondary);
-  font-weight: 600;
-  font-size: 0.9rem;
   border-bottom: 1px solid var(--border-color);
 }
 
-.user-history-table td {
-  padding: 10px 16px;
-  border-bottom: 1px solid rgba(32, 32, 48, 0.5);
-  font-size: 0.9rem;
+.card-header h3 {
+  margin: 0;
+  font-size: 1.05rem;
 }
 
-@media (max-width: 768px) {
-  .user-history-table th {
-    padding: 10px 8px;
-    font-size: 0.8rem;
-  }
-  
-  .user-history-table td {
-    padding: 8px;
-    font-size: 0.8rem;
-  }
-  
-  .user-history-filters {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 8px;
-  }
-  
-  .user-history-filters button,
-  .user-history-filters select {
-    width: 100%;
-    height: 40px; /* Better touch target */
-  }
+.icon-button {
+  background-color: transparent;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 4px;
+  transition: all 0.3s ease;
 }
 
-/* Danger Zone Styles */
-.danger-zone {
-  margin-top: 30px;
-  border: 1px solid #822727;
-  background-color: rgba(130, 39, 39, 0.1);
+.icon-button:hover {
+  color: var(--text-primary);
+  background-color: rgba(255, 255, 255, 0.05);
 }
 
-.danger-zone h2 {
-  color: #ff6b6b;
+.users-container {
+  padding: 12px 16px;
+  min-height: 100px;
 }
 
-.danger-actions {
-  padding: 15px;
-}
-
-.danger-action {
-  margin-bottom: 15px;
-}
-
-.danger-action h3 {
-  color: #ff6b6b;
+.device-entry {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background-color: rgba(0, 0, 0, 0.1);
+  border-radius: 4px;
   margin-bottom: 8px;
 }
 
-.danger-action p {
-  color: var(--text-secondary);
-  margin-bottom: 15px;
-  font-size: 0.9rem;
-  line-height: 1.4;
-}
-
-.danger-button {
-  background-color: #822727;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 10px 16px;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: background-color 0.3s;
+.device-info {
   display: flex;
   align-items: center;
-  justify-content: center;
-  min-height: 44px; /* Better touch target */
+  gap: 8px;
 }
 
-.danger-button i {
-  margin-right: 8px;
+.device-id {
+  font-family: monospace;
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  background-color: rgba(0, 0, 0, 0.15);
+  padding: 2px 6px;
+  border-radius: 3px;
 }
 
-.danger-button:hover {
-  background-color: #a53030;
-}
-
-.delete-confirmation {
-  margin-top: 15px;
-  padding: 15px;
-  border: 1px dashed #a53030;
-  border-radius: 4px;
-  background-color: rgba(165, 48, 48, 0.1);
-}
-
-.delete-confirmation p {
-  color: #ff6b6b;
-  margin-bottom: 10px;
+.current-username {
   font-weight: 500;
-}
-
-#delete-confirmation-input {
-  width: 100%;
-  padding: 8px 10px;
-  margin-bottom: 10px;
-  background-color: var(--input-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
   color: var(--text-primary);
-  font-size: 0.9rem;
 }
 
-#delete-confirmation-input:focus {
-  border-color: #a53030;
-  outline: none;
-}
-
-.confirmation-actions {
-  display: flex;
-  gap: 10px;
-}
-
-#cancel-delete-btn {
-  background-color: var(--bg-secondary);
-  color: var(--text-primary);
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  padding: 8px 16px;
-  font-size: 0.9rem;
-  cursor: pointer;
-  transition: background-color 0.3s;
-}
-
-#cancel-delete-btn:hover {
-  background-color: var(--input-bg);
+.no-data-message {
+  color: var(--text-secondary);
+  font-style: italic;
+  text-align: center;
+  padding: 20px 0;
 }
 
 /* Media queries for mobile */
@@ -991,4 +873,226 @@
     right: auto;
     left: 0;
   }
+}
+
+/* Password Management Styles - Updated */
+.current-password-card,
+.password-selector-card {
+  margin-bottom: 16px;
+}
+
+/* Updated layout structure */
+.password-management-container {
+  display: flex;
+  flex-direction: row;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.current-password-card,
+.password-selector-card {
+  flex: 1;
+  min-width: 250px;
+}
+
+/* Styled password input container */
+.password-input-container {
+  display: flex;
+  position: relative;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 8px;
+}
+
+/* Style new password input like username input */
+#new-password {
+  background-color: #0a0a0a;
+  border: 1px solid #151515;
+  border-radius: 4px;
+  padding: 6px 10px;
+  padding-left: 32px;
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color 0.3s;
+  flex: 1;
+  font-size: 0.85rem;
+  height: 34px;
+  position: relative;
+  z-index: 5;
+}
+
+#new-password:focus {
+  border-color: var(--accent-color);
+}
+
+/* Password icon */
+.password-input-container::before {
+  content: '\f023'; /* Lock icon */
+  font-family: 'Font Awesome 6 Free';
+  font-weight: 900;
+  position: absolute;
+  left: 11px;
+  top: 17px;
+  transform: translateY(-50%);
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* Style update button */
+#update-password-btn {
+  background-color: var(--accent-color);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 0 12px;
+  height: 34px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  font-size: 0.85rem;
+}
+
+#update-password-btn:hover {
+  background-color: var(--accent-hover);
+}
+
+#update-password-btn i {
+  margin-right: 6px;
+  font-size: 0.9em;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .password-management-container {
+    flex-direction: column;
+    gap: 16px;
+  }
+  
+  .password-input-container {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  #new-password {
+    width: 100%;
+  }
+  
+  #update-password-btn {
+    width: 100%;
+    height: 40px;
+    justify-content: center;
+  }
+  
+  .password-input-container::before {
+    top: 17px;
+  }
+}
+
+/* Danger Zone Styles */
+.danger-zone {
+  margin-top: 30px;
+  border: 1px solid #822727;
+  background-color: rgba(130, 39, 39, 0.1);
+}
+
+.danger-zone h2 {
+  color: #ff6b6b;
+}
+
+.danger-actions {
+  padding: 15px;
+}
+
+.danger-action {
+  margin-bottom: 15px;
+}
+
+.danger-action h3 {
+  color: #ff6b6b;
+  margin-bottom: 8px;
+}
+
+.danger-action p {
+  color: var(--text-secondary);
+  margin-bottom: 15px;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.danger-button {
+  background-color: #822727;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 10px 16px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px; /* Better touch target */
+}
+
+.danger-button i {
+  margin-right: 8px;
+}
+
+.danger-button:hover {
+  background-color: #a53030;
+}
+
+.delete-confirmation {
+  margin-top: 15px;
+  padding: 15px;
+  border: 1px dashed #a53030;
+  border-radius: 4px;
+  background-color: rgba(165, 48, 48, 0.1);
+}
+
+.delete-confirmation p {
+  color: #ff6b6b;
+  margin-bottom: 10px;
+  font-weight: 500;
+}
+
+#delete-confirmation-input {
+  width: 100%;
+  padding: 8px 10px;
+  margin-bottom: 10px;
+  background-color: var(--input-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  color: var(--text-primary);
+  font-size: 0.9rem;
+}
+
+#delete-confirmation-input:focus {
+  border-color: #a53030;
+  outline: none;
+}
+
+.confirmation-actions {
+  display: flex;
+  gap: 10px;
+}
+
+#cancel-delete-btn {
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+#cancel-delete-btn:hover {
+  background-color: var(--input-bg);
 } 
